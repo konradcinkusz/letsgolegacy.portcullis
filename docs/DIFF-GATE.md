@@ -211,12 +211,16 @@ This resolves the specific, repeatedly-flagged gap: the gate now distinguishes w
 introduces from what already existed. It was verified on both a controlled, disposable
 fixture and real, historical `<consumer>` data — not one or the other.
 
-It does not: fix the fail-open risk in §3 at the contract level; give
-`portcullis-pr-check.yml` a live end-to-end run in this session (that happens naturally the
-next time a PR is opened against this repository, since the workflow now dogfoods its own
-fix); or change anything about which 6 rules exist or what they catch. Dogfooding the gate on
-`<consumer>`' own repair PRs was sequenced after this milestone specifically because an
-active gate there needed this fix to be workable at all.
+It does not: give `portcullis-pr-check.yml` a live end-to-end run in this session (that
+happens naturally the next time a PR is opened against this repository, since the workflow
+now dogfoods its own fix); or change anything about which 6 rules exist or what they catch.
+Dogfooding the gate on `<consumer>`' own repair PRs was sequenced after this milestone
+specifically because an active gate there needed this fix to be workable at all.
+
+**The fail-open risk in §3 is fixed.** As first written, this list also said the milestone
+left that risk open at the contract level. It has since been closed there: a
+`ProvenanceReport` carries a `ProvenanceStatus`, and a degraded one makes the scan fall back
+to the whole-tree gate with `Gate.DegradedReason` set, as §3.2 records.
 
 ## 6. Since then: SARIF, the baseline, and one range check (ticket R3, 2026-09-26)
 
