@@ -8,14 +8,14 @@
   "rulesEvaluated": 3,
   "violations": [
     {
-      "ruleId": "PORTCULLIS-P9-CONTROLLER-NO-DBCONTEXT",
+      "ruleId": "PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT",
       "filePath": "src/Demo.AdvertsService/Controllers/AdvertsController.cs",
       "line": 47,
       "message": "AdvertsController references AdvertsDbContext directly; controllers must go through an orchestrator. See architecture-standards P9.",
       "severity": "error"
     },
     {
-      "ruleId": "PORTCULLIS-P2-KERNEL-LOC-CEILING",
+      "ruleId": "PORTCULLIS_P2_KERNEL_LOC_CEILING",
       "filePath": "src/ServiceDefaults/Extensions.cs",
       "line": 812,
       "message": "ServiceDefaults exceeds the 800-line kernel ceiling (currently 812 lines). See architecture-standards P2.",

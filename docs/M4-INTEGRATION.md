@@ -184,6 +184,14 @@ literal process exit code, not inferred from the rendered text. `dotnet run --pr
 src/Portcullis.CiComment -- --current <scan.json>` with no `--pr`/`GITHUB_TOKEN` degrades
 to "skipping comment publish" rather than crashing, exactly as designed for a local run.
 
+> **Correction (2026-09-26).** The result recorded above is what the code does; the reason
+> given for it is not. The diff does not key on rule and location: `ViolationDiff`
+> (`src/Portcullis.CiComment/ViolationDiff.cs`) compares all five violation fields — rule
+> id, file, line, message and severity. A violation whose severity changed between two
+> scans is therefore one resolved entry at the old severity and one new entry at the new
+> one, which is what this run showed for the five escalated P10 violations. Keyed on rule
+> and location alone, they would have been reported as unchanged.
+
 ## 6. An honest gap this run surfaced, not fixed here
 
 The CLI's and `Portcullis.CiComment`'s exit-code gate is **absolute**: `errorCount > 0`

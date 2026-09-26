@@ -71,6 +71,11 @@ that reintroduces a hyphen fails fast in CI rather than crashing every scan with
 consumers of the `ruleId` field should not assume hyphens), which is exactly the kind
 of cross-track call that belongs to the integration session, not this one.
 
+> **Since then (2026-09-26).** `docs/SPEC.md` §1–2 now give the underscore form, and
+> Track B's mock scan results (`fixtures/mock-engine-output/`) carry ids the rules
+> actually register. The SPEC text quoted at the top of this section is what it said
+> when this was written.
+
 ## 2. Mutation-pass methodology
 
 The method, as the engine track's brief put it: each variant "disables or weakens
@@ -352,6 +357,32 @@ a real gap even when grounded in a real example — it took an actual scan, not 
 reasoning about the design, to surface it), and it does not extend any claim to the 9
 principles this pass leaves untouched (5 Deferred, 4 Out of scope per `docs/SPEC.md`
 section 5's own tally).
+
+### 7.7 The convention-coverage meta-rule
+
+Section 8.1 counts ten mutants from sections 3 and 7; the tables above hold nine. The tenth
+belongs to `ConventionCoverageAnalyzer`, which is not a principle rule: it reports when the
+folder and file-name conventions the other rules match against find nothing, so that a scan
+which checked nothing does not pass for a clean one ([`CONFIGURATION.md`](CONFIGURATION.md)).
+Its aggregate diagnostic, `PORTCULLIS_NO_CONVENTION_MATCHED`, is deliberately
+all-or-nothing: it fires only when no convention matched and none was configured, because
+most healthy codebases legitimately lack some of these shapes.
+
+Its variant is the inverted one section 8.1 refers to. For a meta-rule the failure that
+matters is firing on healthy code — a noisy gate gets switched off, and then reports nothing
+when it counts — so the test asserts that the real rule stays silent and the mutant does not.
+
+| Variant | File | Breaks | Test | Result |
+|---|---|---|---|---|
+| `ConventionCoverageAggregateMutant` | `Rules/Mutants/ConventionCoverageAggregateMutant.cs` | Reports `PORTCULLIS_NO_CONVENTION_MATCHED` once for every folder convention (kernel, entity, adapter) that matched nothing, instead of only when none matched — the per-convention behaviour the rule's own doc comment records as producing four warnings on ordinary code | `MutationTests.ConventionCoverageAggregate_RealStaysSilentButMutantFires` — a kernel folder (`Demo.ServiceDefaults`) matches and nothing else does: real silent, mutant fires | **Caught.** |
+
+```
+$ dotnet test tests/Portcullis.Engine.Tests -c Release --filter "FullyQualifiedName~MutationTests"
+  Passed ….MutationTests.ConventionCoverageAggregate_RealStaysSilentButMutantFires
+  … (and the fourteen others: sections 3, 7.4 and 8.1)
+Total tests: 15
+     Passed: 15
+```
 
 ## 8. Migration rules: hand-written mutants and a Stryker.NET score
 

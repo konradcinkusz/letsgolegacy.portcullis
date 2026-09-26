@@ -8,35 +8,35 @@
   "rulesEvaluated": 3,
   "violations": [
     {
-      "ruleId": "PORTCULLIS-P2-KERNEL-LOC-CEILING",
+      "ruleId": "PORTCULLIS_P2_KERNEL_LOC_CEILING",
       "filePath": "src/ServiceDefaults/Extensions.cs",
       "line": 812,
       "message": "ServiceDefaults exceeds the 800-line kernel ceiling (currently 812 lines). See architecture-standards P2.",
       "severity": "error"
     },
     {
-      "ruleId": "PORTCULLIS-P9-CONTROLLER-NO-DBCONTEXT",
+      "ruleId": "PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT",
       "filePath": "src/Demo.AdvertsService/Controllers/AdvertsController.cs",
       "line": 47,
       "message": "AdvertsController references AdvertsDbContext directly; controllers must go through an orchestrator. See architecture-standards P9.",
       "severity": "error"
     },
     {
-      "ruleId": "PORTCULLIS-P9-CONTROLLER-NO-DBCONTEXT",
+      "ruleId": "PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT",
       "filePath": "src/Demo.AdvertsService/Controllers/AdvertsController.cs",
       "line": 63,
       "message": "AdvertsController references AdvertsDbContext directly; controllers must go through an orchestrator. See architecture-standards P9.",
       "severity": "warning"
     },
     {
-      "ruleId": "PORTCULLIS-P11-VENDOR-SDK-LEAK",
+      "ruleId": "PORTCULLIS_P11_VENDOR_SDK_OUTSIDE_ADAPTER",
       "filePath": "src/Demo.IdentityService/Services/EmailSender.cs",
       "line": 22,
       "message": "SendGrid.Helpers.Mail referenced outside the designated adapter namespace. See architecture-standards P11.",
       "severity": "warning"
     },
     {
-      "ruleId": "PORTCULLIS-P15-OBSERVABILITY-BUILD-TIME",
+      "ruleId": "PORTCULLIS_P15_MISSING_SERVICE_DEFAULTS",
       "filePath": "src/Demo.IdentityService/Program.cs",
       "line": 14,
       "message": "Program.cs does not call AddServiceDefaults(); observability wiring is missing at build time. See architecture-standards P15.",

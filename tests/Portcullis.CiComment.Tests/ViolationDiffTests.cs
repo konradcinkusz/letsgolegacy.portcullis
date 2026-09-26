@@ -5,13 +5,13 @@ namespace Portcullis.CiComment.Tests;
 public class ViolationDiffTests
 {
     private static readonly Violation KernelCeiling = new(
-        "PORTCULLIS-P2-KERNEL-LOC-CEILING", "src/ServiceDefaults/Extensions.cs", 812, "too long", "warning");
+        "PORTCULLIS_P2_KERNEL_LOC_CEILING", "src/ServiceDefaults/Extensions.cs", 812, "too long", "warning");
 
     private static readonly Violation ControllerDbContext = new(
-        "PORTCULLIS-P9-CONTROLLER-NO-DBCONTEXT", "src/Adverts/Controllers/AdvertsController.cs", 47, "leaky", "error");
+        "PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT", "src/Adverts/Controllers/AdvertsController.cs", 47, "leaky", "error");
 
     private static readonly Violation VendorSdkLeak = new(
-        "PORTCULLIS-P11-VENDOR-SDK-LEAK", "src/Identity/Services/EmailSender.cs", 22, "leaky sdk", "warning");
+        "PORTCULLIS_P11_VENDOR_SDK_OUTSIDE_ADAPTER", "src/Identity/Services/EmailSender.cs", 22, "leaky sdk", "warning");
 
     [Fact]
     public void Compute_WithNoPreviousResult_TreatsEveryCurrentViolationAsNew()
@@ -63,6 +63,22 @@ public class ViolationDiffTests
 
         Assert.Empty(diff.New);
         Assert.Equal(2, diff.Resolved.Count);
+        Assert.Empty(diff.Unchanged);
+    }
+
+    [Fact]
+    public void Compute_SeverityChangedBetweenScans_IsOneResolvedAndOneNew()
+    {
+        // Severity is part of a violation's identity, so a violation escalated between two
+        // scans is resolved at its old severity and new at its new one, not unchanged —
+        // what docs/M4-INTEGRATION.md section 5 recorded for escalated violations.
+        IReadOnlyList<Violation> before = [KernelCeiling];
+        IReadOnlyList<Violation> after = [KernelCeiling with { Severity = "error" }];
+
+        var diff = ViolationDiff.Compute(after, before);
+
+        Assert.Equal(after[0], Assert.Single(diff.New));
+        Assert.Equal(KernelCeiling, Assert.Single(diff.Resolved));
         Assert.Empty(diff.Unchanged);
     }
 

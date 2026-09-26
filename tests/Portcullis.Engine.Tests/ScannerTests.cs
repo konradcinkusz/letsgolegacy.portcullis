@@ -60,6 +60,40 @@ public class ScannerTests
     }
 
     [Fact]
+    public async Task ScanAsync_ScanStartedUtc_IsTakenBeforeTheScanRuns()
+    {
+        // docs/SPEC.md section 3: scanStartedUtc is the wall-clock start of the scan. A scan
+        // that started then and ran for scanDurationMs must have finished by the time
+        // ScanAsync returned. Stamped when the scan finished instead, that end falls a
+        // whole scan's duration after the return.
+        var tempDir = Directory.CreateTempSubdirectory("portcullis-scan-test-");
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(tempDir.FullName, "Sample.cs"),
+                "namespace Sample;\n\npublic class Foo { }\n");
+
+            var calledAt = DateTime.UtcNow;
+            var result = await Scanner.ScanAsync(tempDir.FullName);
+            var returnedAt = DateTime.UtcNow;
+
+            Assert.InRange(result.ScanStartedUtc, calledAt, returnedAt);
+
+            // The duration comes from a stopwatch, not the wall clock, so 1% is allowed for
+            // the two running at slightly different rates. Stamped at the end, the start
+            // sits microseconds before the return, nowhere near a whole scan.
+            var startToReturnMs = (returnedAt - result.ScanStartedUtc).TotalMilliseconds;
+            Assert.True(
+                startToReturnMs >= result.ScanDurationMs * 0.99,
+                $"scanStartedUtc is {startToReturnMs} ms before ScanAsync returned, but the scan took {result.ScanDurationMs} ms");
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task ScanAsync_OnMissingPath_ReturnsEmptyResultRatherThanThrowing()
     {
         var result = await Scanner.ScanAsync(Path.Combine(Path.GetTempPath(), "portcullis-does-not-exist-" + Guid.NewGuid()));

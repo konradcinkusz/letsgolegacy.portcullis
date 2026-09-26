@@ -113,6 +113,7 @@ blocks.
 | `diff-scoped` | `true` | Only violations in the PR's own changed lines can block (§4) |
 | `comment` | `true` | Post/update the sticky PR comment |
 | `fail-on-block` | `true` | Set `false` to report without enforcing |
+| `github-token` | `github.token` | Token that publishes the sticky comment; needs `pull-requests: write` |
 | `dotnet-version` | `10.0.x` | Set `''` to use whatever the runner already has |
 
 **Code scanning.** The Action does not take `--sarif` or `--baseline` yet. To publish SARIF
@@ -120,8 +121,8 @@ to GitHub code scanning today, run the CLI and `github/codeql-action/upload-sari
 own workflow, as this repository does for its own pull requests — the workflow is in
 [`SARIF.md` §5](SARIF.md).
 
-**Outputs** — `blocked`, `error-count`, `blocking-error-count`, `result-path` — so a
-later step can react:
+**Outputs** — `blocked`, `error-count`, `blocking-error-count`, `gate-scope` (`diff` or
+`all`: which lines could block) and `result-path` — so a later step can react:
 
 ```yaml
       - uses: konradcinkusz/letsgolegacy.portcullis@v0
@@ -287,12 +288,12 @@ being accepted. Details, including what changes a fingerprint: [`SARIF.md` §3](
 ```json
 {
   "filesScanned": 156,
-  "rulesEvaluated": 7,
+  "rulesEvaluated": 11,
   "violations": [
     { "ruleId": "PORTCULLIS_P9_ORPHAN_ENTITY", "filePath": "Domain/QrCode.cs",
       "line": 11, "message": "...", "severity": "warning" }
   ],
-  "summary": { "errorCount": 4, "warningCount": 14, "infoCount": 0 },
+  "summary": { "errorCount": 9, "warningCount": 9, "infoCount": 0 },
   "gate": { "blocked": true, "scope": "diff", "blockingErrorCount": 5 }
 }
 ```
