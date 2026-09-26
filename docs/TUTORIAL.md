@@ -120,8 +120,8 @@ to GitHub code scanning today, run the CLI and `github/codeql-action/upload-sari
 own workflow, as this repository does for its own pull requests — the workflow is in
 [`SARIF.md` §5](SARIF.md).
 
-**Outputs** — `blocked`, `error-count`, `blocking-error-count`, `result-path` — so a
-later step can react:
+**Outputs** — `blocked`, `error-count`, `blocking-error-count`, `gate-scope` (`diff` or
+`all`: which lines could block) and `result-path` — so a later step can react:
 
 ```yaml
       - uses: konradcinkusz/letsgolegacy.portcullis@v0

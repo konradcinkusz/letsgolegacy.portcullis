@@ -60,6 +60,9 @@ happened is not written as though it had.
   repository's own pull requests, keeps the SARIF as a build artifact and uploads it to
   GitHub code scanning, and the pull-request gate uses the same committed baseline. See
   [`docs/SARIF.md`](docs/SARIF.md).
+- **A `gate-scope` output on the Action** — `diff` or `all`, the scope
+  `blocking-error-count` was counted in. The scan step already computed it, but
+  `action.yml` did not declare it, so no later step could read it.
 
 ### Changed
 
@@ -117,6 +120,9 @@ happened is not written as though it had.
 - **`scanStartedUtc` is when the scan started.** It was read when the result was built,
   after the scan had finished, although [`docs/SPEC.md`](docs/SPEC.md) §3 defines it as the
   start; `scanStartedUtc` plus `scanDurationMs` now ends when the scan did.
+- **The comment tool's package README no longer says the Action wires in a previous-scan
+  cache.** It does not pass `--previous`, so its comment has no new/resolved line; the
+  README now says so and how to get one.
 
 ### Known limitations
 

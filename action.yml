@@ -59,6 +59,12 @@ outputs:
   blocking-error-count:
     description: "Error-severity violations that actually count toward the gate under the active scope."
     value: ${{ steps.scan.outputs.blocking-error-count }}
+  gate-scope:
+    description: >
+      The active scope: "diff" when only the PR's own changed lines could block, "all" when
+      the whole scanned tree could — diff-scoped off, no pull request, or the fallback when
+      the PR's range could not be resolved.
+    value: ${{ steps.scan.outputs.gate-scope }}
   result-path:
     description: "Path to the raw scan-result JSON, for a later step to consume."
     value: ${{ steps.scan.outputs.result-path }}

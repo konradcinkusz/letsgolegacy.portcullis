@@ -530,7 +530,9 @@ jobs:
       </div>
 
       <p>Outputs — <code>blocked</code>, <code>error-count</code>,
-      <code>blocking-error-count</code>, <code>result-path</code> — let a later step react:</p>
+      <code>blocking-error-count</code>, <code>gate-scope</code> (<code>diff</code> or
+      <code>all</code>: which lines could block) and <code>result-path</code> — let a later
+      step react:</p>
 
 <pre><code>- uses: konradcinkusz/letsgolegacy.portcullis@v0
   id: portcullis
