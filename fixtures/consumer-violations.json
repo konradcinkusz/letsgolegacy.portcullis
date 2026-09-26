@@ -1,0 +1,199 @@
+{
+  "$comment": "Milestone M1D fixture: the machine-readable 'must catch' list Portcullis's engine was first tested against. The source repository is private today (it is this project owner's own earlier application) and is cited as `<consumer>` under the placeholder convention architecture-standards defines for exactly this case (docs/architecture/00-REFERENCE-ARCHITECTURE.md, 'How worked examples are cited') -- the shape a finding came from is the point, not the repository name. REDACTION NOTE, stated plainly rather than left for a reader to notice: this file originally carried verbatim source excerpts and a detailed prose narrative of that private codebase's business logic. Those were removed when portcullis was prepared for public release; every entry's identity (id, rule mapping, entity name, file:line, roslynCheckable verdict) is preserved unchanged, because that is what docs/BOOTSTRAP.md, docs/MUTATIONS.md and docs/FINDINGS.md actually cite. What is gone is the quoted code and the business-gap prose, neither of which any tooling or document here depends on.",
+  "schemaVersion": "1.1.0",
+  "source": {
+    "repository": "<consumer>",
+    "repositoryNote": "Private. A multi-service .NET Aspire application.",
+    "verifiedAgainstCommit": "f63b293dc3a063d71e47d458583f26d7ef8578dd",
+    "verifiedOn": "2026-08-17",
+    "verificationMethod": "Every entry's filePath:line was opened and read directly at the time this fixture was written, not trusted from the source repository's own README or docs. Where a doc claim and current source disagreed, current source won and the disagreement is recorded on the entry (see CONSUMER-001).",
+    "redactedOn": "2026-08-17",
+    "redactionReason": "portcullis prepared for public release; private source excerpts removed, finding identity preserved."
+  },
+  "violations": [
+    {
+      "id": "CONSUMER-001",
+      "category": "documentation-drift",
+      "principleId": "P14",
+      "principleNote": "architecture-standards P14: 'a stale README describing a system that no longer exists is itself a review finding.' Direct match.",
+      "title": "README documents two subsystems as unimplemented; both were in fact implemented in an earlier commit, and the README was never corrected",
+      "status": "confirmed-current",
+      "roslynCheckable": false,
+      "roslynCheckableReason": "Prose staleness measured against git history, not the AST or semantic shape of C# source. No static analyzer over a single snapshot can see that a document is out of date.",
+      "filePath": "README.md",
+      "line": 242,
+      "endLine": 249,
+      "verification": "The routes the README calls missing all exist in the current controller, and the handler it describes as hardcoded performs a real lookup. git log places the implementing commit before the audit document that repeated the stale claim -- the drift-detection tooling was simply never re-run against this specific assertion. This entry is the reason docs/BOOTSTRAP.md exists: two of the three violation categories the bootstrap prompt assumed turned out to be already fixed, and were replaced with verified-current equivalents rather than shipped stale."
+    },
+    {
+      "id": "CONSUMER-002",
+      "category": "dead-client-wiring",
+      "principleId": null,
+      "principleNote": "No P1-P15 principle covers frontend-to-backend call-wiring completeness; the 15 principles are infrastructure/layering-shaped, not feature-completeness-shaped. Left unmapped rather than force-fit.",
+      "title": "A web client's action button never calls the backend endpoint that implements it; the correctly implemented service method exists and is unreferenced. Every individual piece (endpoint, service method, DTO gating) is correct in isolation -- only the wiring between them is missing.",
+      "status": "confirmed-current",
+      "roslynCheckable": false,
+      "roslynCheckableReason": "Lives entirely in TypeScript. portcullis's engine is a Roslyn analyzer over C#/.NET and has no visibility into that language at all. Recorded anyway because it is real and in scope as reference data -- just out of scope for what this engine can catch, which is itself worth stating rather than silently omitting.",
+      "filePath": "<consumer>.Web/src/app/main/home/advert-details/advert-details.component.ts",
+      "line": 119,
+      "endLine": 121,
+      "verification": "The service method POSTs to the real, working backend endpoint, but is never called from the component or its template. The button invokes a local handler that flips a boolean instead. The backend correctly withholds the gated data, so nothing leaks -- the feature is simply unreachable from this client. This is the 'passes review because each piece looks fine on its own' failure shape portcullis exists to catch, just not in a language it can see."
+    },
+    {
+      "id": "CONSUMER-003",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "principleNote": "Not P-coded in the source repository's own audit docs either. P9 ('Program.cs is a manifest' / layering) is the closest conceptual fit if a mapping is forced, but that is portcullis's inference, not a documented one.",
+      "title": "QrCode is a fully modelled EF Core entity (table, DbSet, domain class) referenced by zero controllers or application services anywhere in the codebase",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "Directly Roslyn-checkable: find every type T with a DbSet<T> property on a DbContext, then check whether T has any incoming reference from outside its own declaring file. Zero references = orphan. The strongest candidate in this fixture for a first rule to implement.",
+      "filePath": "<consumer>.AdvertsService/Domain/QrCode.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.AdvertsService/Infrastructure/AdvertsDbContext.cs",
+        "line": 44
+      },
+      "verification": "Zero controller or service references anywhere under src/. A same-named but functionally unrelated endpoint exists elsewhere and generates its artifact on the fly without ever touching this table -- so the entity is not merely under-used, it is unreachable from any API surface, and the similarly-named endpoint makes that non-obvious without checking both."
+    },
+    {
+      "id": "CONSUMER-004",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "title": "StaticMap is a modelled EF Core entity reachable only as an unpopulated navigation property, never read or written by any controller or service",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "Same DbSet-reference-count pattern as CONSUMER-003.",
+      "filePath": "<consumer>.AdvertsService/Domain/StaticMap.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.AdvertsService/Infrastructure/AdvertsDbContext.cs",
+        "line": 45
+      },
+      "verification": "Only reachable as a navigation property on a sibling domain class; never populated or read by any controller or query."
+    },
+    {
+      "id": "CONSUMER-005",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "title": "SystemMessage is a modelled EF Core entity with no controller or service reference anywhere",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "Same DbSet-reference-count pattern as CONSUMER-003.",
+      "filePath": "<consumer>.AdvertsService/Domain/SystemMessage.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.AdvertsService/Infrastructure/AdvertsDbContext.cs",
+        "line": 49
+      },
+      "verification": "No reference outside its own domain file and the DbSet declaration line."
+    },
+    {
+      "id": "CONSUMER-006",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "title": "AdvertMessage is modelled in the data layer, but the messaging feature it exists for sends email directly and never writes to this table",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "Same DbSet-reference-count pattern as CONSUMER-003.",
+      "filePath": "<consumer>.AdvertsService/Domain/AdvertMessage.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.AdvertsService/Infrastructure/AdvertsDbContext.cs",
+        "line": 25
+      },
+      "verification": "The controller action delegates to an application service that sends an email directly and never touches this table."
+    },
+    {
+      "id": "CONSUMER-007",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "title": "AdvertTraffic is written on every relevant interaction, but no controller exposes any way to read it back -- 'recorded, never read'",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "A variant of the same pattern: instead of zero references, this is write-only (an inbound reference exists, but no read/query surface). Detectable by checking whether a DbSet<T> has any LINQ read reachable from a controller, not just an insert -- a different check from the zero-reference one, and not implemented.",
+      "filePath": "<consumer>.AdvertsService/Domain/AdvertTraffic.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.AdvertsService/Infrastructure/AdvertsDbContext.cs",
+        "line": 24
+      },
+      "verification": "An application service inserts a row on every relevant interaction, but no controller anywhere exposes a read over this table."
+    },
+    {
+      "id": "CONSUMER-008",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "title": "UserAddressItem (identity service) is modelled with no controller reference",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "Same DbSet-reference-count pattern as CONSUMER-003, in a second DbContext.",
+      "filePath": "<consumer>.IdentityService/Domain/UserAddressItem.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.IdentityService/Infrastructure/IdentityDbContext.cs",
+        "line": 17
+      },
+      "verification": "The profile controller delegates to an application service that touches four other entity types and never this one."
+    },
+    {
+      "id": "CONSUMER-009",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "title": "CompanyAddress (identity service) is modelled with no controller reference, reachable only as a nested navigation property",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "Same DbSet-reference-count pattern as CONSUMER-003.",
+      "filePath": "<consumer>.IdentityService/Domain/CompanyAddress.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.IdentityService/Infrastructure/IdentityDbContext.cs",
+        "line": 18
+      },
+      "verification": "Only reachable as a navigation property on a sibling entity; the profile controller never reaches it."
+    },
+    {
+      "id": "CONSUMER-010",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "title": "CompanyAddressItem (identity service) is modelled with no controller reference",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "Same DbSet-reference-count pattern as CONSUMER-003.",
+      "filePath": "<consumer>.IdentityService/Domain/CompanyAddressItem.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.IdentityService/Infrastructure/IdentityDbContext.cs",
+        "line": 19
+      },
+      "verification": "No controller reference found; the profile controller never reaches it."
+    },
+    {
+      "id": "CONSUMER-011",
+      "category": "orphan-data-layer-entity",
+      "principleId": null,
+      "title": "UserMessage (identity service) is modelled with no controller reference anywhere",
+      "status": "confirmed-current",
+      "roslynCheckable": true,
+      "roslynCheckableReason": "Same DbSet-reference-count pattern as CONSUMER-003.",
+      "filePath": "<consumer>.IdentityService/Domain/UserMessage.cs",
+      "line": 11,
+      "dbSetDeclaration": {
+        "filePath": "<consumer>.IdentityService/Infrastructure/IdentityDbContext.cs",
+        "line": 20
+      },
+      "verification": "No controller reference found anywhere under src/."
+    }
+  ],
+  "summary": {
+    "total": 11,
+    "roslynCheckable": 9,
+    "notRoslynCheckable": 2,
+    "notRoslynCheckableReasons": {
+      "CONSUMER-001": "documentation prose vs. git history, not C# AST/semantics",
+      "CONSUMER-002": "TypeScript source, outside portcullis's C#/.NET analysis scope"
+    },
+    "caughtByTheEngine": ["CONSUMER-003", "CONSUMER-005", "CONSUMER-006"],
+    "caughtByTheEngineNote": "Three of the nine roslynCheckable entries are caught by PORTCULLIS_P9_ORPHAN_ENTITY as implemented. The other six are not, for reasons recorded honestly in docs/MUTATIONS.md section 6 -- a navigation-property reference from a sibling class reads as 'used' under this rule's coarser 'zero references anywhere outside the declaring file' definition, which is not the same as the fixture's finer 'zero references from a controller specifically'."
+  }
+}

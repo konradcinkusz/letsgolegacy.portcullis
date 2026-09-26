@@ -1,0 +1,44 @@
+name: Rule proposal — something the gate should catch
+description: Propose a new architectural rule, or an extension to an existing one.
+labels: ["rule-proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [`docs/SPEC.md` §5](https://github.com/konradcinkusz/letsgolegacy.portcullis/blob/main/docs/SPEC.md)
+        first: nine of the fifteen principles are unimplemented on purpose, and it says
+        which need context a single-snapshot C# pass does not have.
+  - type: textarea
+    id: violation
+    attributes:
+      label: The code that should be caught
+      description: A C# example that is currently accepted and should not be.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: clean
+    attributes:
+      label: The code that must NOT be caught
+      description: The nearest thing that looks similar and is legitimate. A rule with no does-not-fire case is a rule that will produce false positives.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this is architectural, not style
+      description: What breaks later if this lands, and why a reviewer plus a compiler does not already catch it.
+    validations:
+      required: true
+  - type: dropdown
+    id: roslyn
+    attributes:
+      label: Can a single-compilation Roslyn pass decide it?
+      description: "Source only: no other project's symbols, no git history, no cross-repo knowledge."
+      options:
+        - "Yes — it is visible in one compilation"
+        - "No — it needs cross-project, cross-repo or historical context"
+        - "Not sure"
+    validations:
+      required: true

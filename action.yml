@@ -1,0 +1,150 @@
+name: "Portcullis"
+description: "Fail a pull request when C# code violates your team's declared architecture — scoped to the PR's own diff, with a sticky comment showing what changed."
+author: "konradcinkusz"
+
+branding:
+  icon: "shield"
+  color: "purple"
+
+# Composite, not a Docker container action, and that is a deliberate platform decision
+# rather than a preference: Docker container actions run ONLY on Linux hosted runners —
+# not Windows, not macOS, and not the slimmer Ubuntu runner images, which have no Docker
+# preinstalled. A composite action that installs a .NET tool runs identically on all of
+# them. The container image published to GHCR alongside this action exists for CI systems
+# that are not GitHub Actions at all. Full reasoning in docs/DISTRIBUTION.md.
+inputs:
+  path:
+    description: "Directory to scan, relative to the repository root."
+    required: false
+    default: "src"
+  version:
+    description: "Version of the Portcullis tools to install. Defaults to the version of this action."
+    required: false
+    default: "0.1.0"
+  diff-scoped:
+    description: >
+      When true (default) on a pull_request event, only violations inside the PR's own
+      changed lines can fail the build, and violations on AI-authored lines get a
+      stricter severity threshold. When false, ANY error-severity violation anywhere in
+      the scanned tree fails the build — correct for a scheduled full audit, and usually
+      wrong for a PR gate on a codebase with pre-existing debt.
+    required: false
+    default: "true"
+  comment:
+    description: "Post/update a sticky pull-request comment with the findings."
+    required: false
+    default: "true"
+  fail-on-block:
+    description: >
+      Fail the workflow step when the gate blocks. Set false to report findings without
+      enforcing them — the useful setting while a team is adopting the rules.
+    required: false
+    default: "true"
+  github-token:
+    description: "Token used to publish the sticky comment. Needs pull-requests: write."
+    required: false
+    default: ${{ github.token }}
+  dotnet-version:
+    description: "The .NET SDK version to set up. Set to an empty string to use whatever is already on the runner."
+    required: false
+    default: "10.0.x"
+
+outputs:
+  blocked:
+    description: "true when the merge gate blocked this run."
+    value: ${{ steps.scan.outputs.blocked }}
+  error-count:
+    description: "Total error-severity violations reported by the scan."
+    value: ${{ steps.scan.outputs.error-count }}
+  blocking-error-count:
+    description: "Error-severity violations that actually count toward the gate under the active scope."
+    value: ${{ steps.scan.outputs.blocking-error-count }}
+  result-path:
+    description: "Path to the raw scan-result JSON, for a later step to consume."
+    value: ${{ steps.scan.outputs.result-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up .NET
+      if: inputs.dotnet-version != ''
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+
+    - name: Install Portcullis tools
+      shell: bash
+      run: |
+        dotnet tool install --global Portcullis.Cli --version "${{ inputs.version }}"
+        if [ "${{ inputs.comment }}" = "true" ]; then
+          dotnet tool install --global Portcullis.CiComment --version "${{ inputs.version }}"
+        fi
+        echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+    - name: Run Portcullis scan
+      id: scan
+      shell: bash
+      env:
+        PC_PATH: ${{ inputs.path }}
+        PC_DIFF_SCOPED: ${{ inputs.diff-scoped }}
+        PC_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        PC_HEAD_SHA: ${{ github.sha }}
+      run: |
+        set -euo pipefail
+        args=(scan "$GITHUB_WORKSPACE/$PC_PATH")
+
+        # Diff scoping needs the PR's base commit present locally. actions/checkout's
+        # default shallow clone does not have it; rather than silently degrade to a gate
+        # that passes everything, say so and fall back to whole-tree scope.
+        if [ "$PC_DIFF_SCOPED" = "true" ] && [ -n "${PC_BASE_SHA:-}" ]; then
+          if git -C "$GITHUB_WORKSPACE" cat-file -e "${PC_BASE_SHA}^{commit}" 2>/dev/null; then
+            args+=(--provenance-range "${PC_BASE_SHA}..${PC_HEAD_SHA}" --provenance-repo "$GITHUB_WORKSPACE")
+          else
+            echo "::warning title=Portcullis::Base commit ${PC_BASE_SHA} is not in this checkout, so the gate cannot be scoped to this PR's diff and is falling back to whole-tree scope. Add 'fetch-depth: 0' to actions/checkout to enable diff scoping."
+          fi
+        fi
+
+        set +e
+        portcullis "${args[@]}" > "$RUNNER_TEMP/portcullis-scan.json"
+        scan_exit=$?
+        set -e
+        # 2 means the CLI was called wrongly — a real failure, not a gate verdict.
+        if [ "$scan_exit" -gt 1 ]; then
+          echo "::error title=Portcullis::portcullis exited $scan_exit (usage error)."
+          cat "$RUNNER_TEMP/portcullis-scan.json" || true
+          exit "$scan_exit"
+        fi
+
+        python3 - "$RUNNER_TEMP/portcullis-scan.json" >> "$GITHUB_OUTPUT" <<'PY'
+        import json, sys
+        d = json.load(open(sys.argv[1]))
+        gate = d.get("gate") or {}
+        blocked = gate.get("blocked", d["summary"]["errorCount"] > 0)
+        print(f"blocked={'true' if blocked else 'false'}")
+        print(f"error-count={d['summary']['errorCount']}")
+        print(f"blocking-error-count={gate.get('blockingErrorCount', d['summary']['errorCount'])}")
+        print(f"gate-scope={gate.get('scope', 'all')}")
+        PY
+        echo "result-path=$RUNNER_TEMP/portcullis-scan.json" >> "$GITHUB_OUTPUT"
+
+    - name: Publish the sticky pull-request comment
+      if: inputs.comment == 'true' && github.event.pull_request.number != ''
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        # This publishes only; the gate verdict is enforced in the next step, so a
+        # comment failure can never be mistaken for a passing gate.
+        portcullis-ci-comment \
+          --current "$RUNNER_TEMP/portcullis-scan.json" \
+          --pr "${{ github.event.pull_request.number }}" || true
+
+    - name: Enforce the gate
+      if: inputs.fail-on-block == 'true'
+      shell: bash
+      run: |
+        if [ "${{ steps.scan.outputs.blocked }}" = "true" ]; then
+          echo "::error title=Portcullis::Blocked — ${{ steps.scan.outputs.blocking-error-count }} error-severity violation(s) in scope. See the pull request comment for details."
+          exit 1
+        fi
+        echo "Portcullis: not blocked (${{ steps.scan.outputs.error-count }} error(s) reported, none in scope)."

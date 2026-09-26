@@ -16,6 +16,11 @@ publish/
 .DS_Store
 Thumbs.db
 
+# Packages and build logs
+*.nupkg
+*.snupkg
+*.binlog
+
 # Test and mutation output
 TestResults/
 coverage/

@@ -1,0 +1,44 @@
+name: CI
+
+# Build and the full test suite, on every pull request and every push to main.
+#
+# `pull_request` deliberately carries no branch filter: pull requests in this repository
+# are stacked (each ticket's branch is based on the previous ticket's branch, not on
+# main), and a `branches: [main]` filter would silently skip CI on every PR in the stack
+# but the first one.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore portcullis.sln
+
+      - name: Build
+        run: dotnet build portcullis.sln --no-restore --configuration Release
+
+      # The provenance tests create throwaway git repositories and commit into them, so
+      # they need nothing from this checkout's own history; the default shallow clone is
+      # enough here, unlike the PR check, which diffs against the PR's base commit.
+      - name: Test
+        run: dotnet test portcullis.sln --no-build --configuration Release

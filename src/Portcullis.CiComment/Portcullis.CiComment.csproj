@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Portcullis.Engine\Portcullis.Engine.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    Shipped as a second tool rather than folded into `portcullis` itself: this one talks to
+    the GitHub API (sticky pull-request comment), which is a different job from scanning
+    and is useless outside CI. Keeping them separate means `portcullis scan` has no reason
+    to want a GITHUB_TOKEN. The composite action installs both.
+  -->
+  <PropertyGroup>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>portcullis-ci-comment</ToolCommandName>
+    <PackageId>Portcullis.CiComment</PackageId>
+    <Title>Portcullis CI comment publisher</Title>
+    <Description>Renders an Portcullis scan result as a Markdown pull-request comment, updates one sticky comment in place instead of posting a new one per push, and exits non-zero when the merge gate blocks.</Description>
+    <PackageTags>portcullis;architecture;ci;github-actions;dotnet-tool</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="PACKAGE-README.md" Pack="true" PackagePath="README.md" Visible="false" />
+  </ItemGroup>
+
+</Project>
