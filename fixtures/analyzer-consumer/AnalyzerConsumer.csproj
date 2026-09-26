@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A consumer of the packed analyzer package on the OLDEST supported SDK: global.json pins
+    the .NET 8 SDK's 1xx feature band, whose compiler is Roslyn 4.8 (the later 8.0 bands ship
+    4.9 to 4.11, so "any .NET 8 SDK" would let a 4.11 floor through). If Portcullis.Rules is ever built against
+    a newer Roslyn, the compiler refuses to load the analyzers with CS9057 (or CS8032), and
+    both are errors here — so the floor documented in Portcullis.Rules.csproj is enforced
+    by CI, not remembered. Built by ci.yml's "Analyzer package on the .NET 8 SDK" job.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>CS9057;CS8032</WarningsAsErrors>
+    <!-- The consumer exists to be analysed, not to ship; its own findings are expected. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Portcullis.Analyzers" Version="$(PortcullisVersion)" />
+  </ItemGroup>
+
+</Project>
