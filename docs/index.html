@@ -521,9 +521,11 @@ jobs:
           <thead><tr><th>Input</th><th>Default</th><th>What it does</th></tr></thead>
           <tbody>
             <tr><td><code>path</code></td><td><code>src</code></td><td>Directory to scan, relative to the repo root</td></tr>
+            <tr><td><code>version</code></td><td>pinned</td><td>Version of the tools to install</td></tr>
             <tr><td><code>diff-scoped</code></td><td><code>true</code></td><td>Only violations in the PR's own changed lines can block</td></tr>
             <tr><td><code>comment</code></td><td><code>true</code></td><td>Post / update the sticky PR comment</td></tr>
             <tr><td><code>fail-on-block</code></td><td><code>true</code></td><td>Set <code>false</code> to report without enforcing</td></tr>
+            <tr><td><code>github-token</code></td><td><code>github.token</code></td><td>Token that publishes the sticky comment; needs <code>pull-requests: write</code></td></tr>
             <tr><td><code>dotnet-version</code></td><td><code>10.0.x</code></td><td>Set <code>''</code> to use the runner's existing SDK</td></tr>
           </tbody>
         </table>
@@ -668,12 +670,12 @@ dotnet_diagnostic.PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT.severity = none</code></
 
 <pre><code>{
   "filesScanned": 156,
-  "rulesEvaluated": 7,
+  "rulesEvaluated": 11,
   "violations": [
     { "ruleId": "PORTCULLIS_P9_ORPHAN_ENTITY", "filePath": "Domain/QrCode.cs",
       "line": 11, "message": "...", "severity": "warning" }
   ],
-  "summary": { "errorCount": 4, "warningCount": 14, "infoCount": 0 },
+  "summary": { "errorCount": 9, "warningCount": 9, "infoCount": 0 },
   "gate": { "blocked": true, "scope": "diff", "blockingErrorCount": 5 }
 }</code></pre>
 
