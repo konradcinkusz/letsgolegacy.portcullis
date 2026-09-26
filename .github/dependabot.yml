@@ -5,10 +5,14 @@ updates:
     schedule:
       interval: weekly
     groups:
-      roslyn:
-        patterns: ["Microsoft.CodeAnalysis*"]
       test-stack:
         patterns: ["xunit*", "Microsoft.NET.Test.Sdk", "coverlet*"]
+    ignore:
+      # Portcullis.Rules pins the OLDEST Roslyn a consumer's compiler has (4.8.0, the .NET 8
+      # SDK's): an analyzer built against a newer one emits CS9057 in every consuming build.
+      # Raising that floor is a decision about which SDKs are supported, not an update, so
+      # the family is raised by hand — Portcullis.Engine's own parser included.
+      - dependency-name: "Microsoft.CodeAnalysis*"
   # Covers .github/workflows/ and the composite action.yml at the root.
   - package-ecosystem: github-actions
     directory: /
