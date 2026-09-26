@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           # Diff-scoped gating and provenance escalation (docs/SPEC.md section 4,
           # Scanner.ComputeDiffScopedGate) need `git diff`/`git blame` against the PR's
