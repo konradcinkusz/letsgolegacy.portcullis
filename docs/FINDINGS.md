@@ -109,6 +109,14 @@ exiting `1`, confirmed literally. The `--previous` diff also correctly labels Sp
 severity, exactly as `docs/M4-INTEGRATION.md` section 5 already established, now
 reconfirmed on a controlled fixture instead of `<consumer>`' own history.
 
+> **Correction (2026-09-26).** The reason given above is wrong, as it is in
+> `docs/M4-INTEGRATION.md` section 5, which carries the same correction. The diff compares
+> all five violation fields, severity and message included (`ViolationDiff`), not rule and
+> location. Sprocket's `🆕 new` label at ❌ is consistent with that: a violation whose
+> severity changed between two scans is listed as resolved at the old severity and new at
+> the new one, whereas a diff keyed on rule and location alone would never list a violation
+> that was only escalated as new.
+
 ### 3.2 The absolute-vs-diff gate gap, reconfirmed with a fresh, controlled example
 
 Scenario 4 is the actual "attack" on the gate design itself. Commit E's own diff is one

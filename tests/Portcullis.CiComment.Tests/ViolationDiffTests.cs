@@ -67,6 +67,22 @@ public class ViolationDiffTests
     }
 
     [Fact]
+    public void Compute_SeverityChangedBetweenScans_IsOneResolvedAndOneNew()
+    {
+        // Severity is part of a violation's identity, so a violation escalated between two
+        // scans is resolved at its old severity and new at its new one, not unchanged —
+        // what docs/M4-INTEGRATION.md section 5 recorded for escalated violations.
+        IReadOnlyList<Violation> before = [KernelCeiling];
+        IReadOnlyList<Violation> after = [KernelCeiling with { Severity = "error" }];
+
+        var diff = ViolationDiff.Compute(after, before);
+
+        Assert.Equal(after[0], Assert.Single(diff.New));
+        Assert.Equal(KernelCeiling, Assert.Single(diff.Resolved));
+        Assert.Empty(diff.Unchanged);
+    }
+
+    [Fact]
     public void Compute_IgnoresFingerprintAndBaselinedWhenMatchingViolations()
     {
         // The previous push's scan may come from an engine that predates fingerprints, and a
