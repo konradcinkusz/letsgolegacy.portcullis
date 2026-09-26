@@ -205,4 +205,90 @@ public class CommentFormatterTests
         Assert.Contains("### `src/Foo.cs`", markdown);
         Assert.Contains("line 42", markdown);
     }
+
+    private static ScanResult WithGate(GateResult gate, params Violation[] violations) => new(
+        "1.0.0", "1.0.0+test", "/tmp/scan", DateTime.UtcNow, 12.3, 6, 7,
+        violations, ScanSummary.From(violations), gate);
+
+    private static Violation Error(string file, int line, bool baselined = false) =>
+        new("PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT", file, line, "boom", "error", "fp-" + file + line, baselined);
+
+    [Fact]
+    public void Render_AcceptedViolation_IsListedAndMarked()
+    {
+        var markdown = CommentFormatter.Render(
+            WithGate(new GateResult(false, "all", 0, AcceptedByBaselineCount: 1), Error("src/Foo.cs", 12, baselined: true)),
+            previous: null);
+
+        Assert.Contains("**line 12** — `PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT`: boom *(accepted by the baseline)*", markdown);
+    }
+
+    [Fact]
+    public void Render_AllScopeWithEveryErrorAccepted_SaysWhyTheRedCountDoesNotBlock()
+    {
+        var markdown = CommentFormatter.Render(
+            WithGate(new GateResult(false, "all", 0, AcceptedByBaselineCount: 2),
+                Error("src/Foo.cs", 12, baselined: true), Error("src/Bar.cs", 3, baselined: true)),
+            previous: null);
+
+        Assert.Contains("ℹ️ Not blocking — the 2 errors above are accepted by the baseline.", markdown);
+    }
+
+    [Fact]
+    public void Render_AllScopeBlockedWithSomeAccepted_CountsEachSeparately()
+    {
+        var markdown = CommentFormatter.Render(
+            WithGate(new GateResult(true, "all", 1, AcceptedByBaselineCount: 1),
+                Error("src/Foo.cs", 12, baselined: true), Error("src/Bar.cs", 3)),
+            previous: null);
+
+        Assert.Contains("🚫 **Blocking** — 1 error not in the baseline; 1 more is accepted by it.", markdown);
+    }
+
+    [Fact]
+    public void Render_DiffScopeBlockedWithSomeAccepted_AddsTheAcceptedCount()
+    {
+        var markdown = CommentFormatter.Render(
+            WithGate(new GateResult(true, "diff", 1, AcceptedByBaselineCount: 2),
+                Error("src/Foo.cs", 12), Error("src/Bar.cs", 3, baselined: true), Error("src/Baz.cs", 4, baselined: true)),
+            previous: null);
+
+        Assert.Contains(
+            "🚫 **Blocking this PR** — 1 error within this PR's own changed lines. 2 more there are accepted by the baseline.",
+            markdown);
+    }
+
+    [Fact]
+    public void Render_DiffScopeNotBlocked_SaysHowManyAreAcceptedAndHowManyAreOutsideTheDiff()
+    {
+        var markdown = CommentFormatter.Render(
+            WithGate(new GateResult(false, "diff", 0, AcceptedByBaselineCount: 1),
+                Error("src/Foo.cs", 12, baselined: true), Error("src/Bar.cs", 3), Error("src/Baz.cs", 4)),
+            previous: null);
+
+        Assert.Contains(
+            "ℹ️ Not blocking this PR — of the 3 errors above, 1 is accepted by the baseline and 2 are outside this PR's own changed lines.",
+            markdown);
+    }
+
+    [Fact]
+    public void Render_DiffScopeNotBlockedWithEveryErrorAccepted_SaysSo()
+    {
+        var markdown = CommentFormatter.Render(
+            WithGate(new GateResult(false, "diff", 0, AcceptedByBaselineCount: 1), Error("src/Foo.cs", 12, baselined: true)),
+            previous: null);
+
+        Assert.Contains("ℹ️ Not blocking this PR — the 1 error above is accepted by the baseline.", markdown);
+    }
+
+    [Fact]
+    public void Render_DegradedGateWithAcceptedErrors_SaysTheBaselineStillApplies()
+    {
+        var markdown = CommentFormatter.Render(
+            WithGate(new GateResult(true, "all", 1, "git could not resolve 'abc..def'", AcceptedByBaselineCount: 1),
+                Error("src/Foo.cs", 12), Error("src/Bar.cs", 3, baselined: true)),
+            previous: null);
+
+        Assert.Contains("so pre-existing violations count here, except the 1 the baseline accepts.", markdown);
+    }
 }

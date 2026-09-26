@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "fingerprintVersion": "portcullisFingerprint/v1",
+  "about": "Findings accepted as pre-existing. Portcullis still reports them, but they do not block and are left out of the filtered SARIF. Each is matched by its fingerprint (rule, file and line text), so the line numbers are where each finding was when this file was written. Regenerate with: portcullis scan <path> --baseline <this file> --write-baseline. See docs/SARIF.md.",
+  "findings": [
+    {
+      "fingerprint": "3ded74b18cca77948520679cf45b3fb644383312223aadfe5141c50c9c84cd1c",
+      "ruleId": "PORTCULLIS_MIG_SYNC_OVER_ASYNC",
+      "filePath": "Portcullis.Engine/Provenance/GitCommandRunner.cs",
+      "line": 74,
+      "message": "'stderrTask.Result' blocks the calling thread until the task completes (Task<TResult>.Result). Under a synchronization context that deadlocks; on ASP.NET Core it holds a thread-pool thread for the whole wait. Make the caller async and await the task instead."
+    },
+    {
+      "fingerprint": "229846c0f122a6ae1c6cbe1ac4431df6fcae57dd305de6edc62fb5c0f599e1e2",
+      "ruleId": "PORTCULLIS_MIG_SYNC_OVER_ASYNC",
+      "filePath": "Portcullis.Engine/Provenance/GitCommandRunner.cs",
+      "line": 77,
+      "message": "'stdoutTask.Result' blocks the calling thread until the task completes (Task<TResult>.Result). Under a synchronization context that deadlocks; on ASP.NET Core it holds a thread-pool thread for the whole wait. Make the caller async and await the task instead."
+    }
+  ]
+}

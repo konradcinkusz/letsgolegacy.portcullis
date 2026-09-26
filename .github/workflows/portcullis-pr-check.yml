@@ -79,6 +79,11 @@ jobs:
       # exit-code test would file "the host could not start the app" under "the gate
       # blocked" and let the step pass. A blocked gate always writes a complete JSON
       # document; a host failure writes nothing.
+      #
+      # --baseline (ticket R3, docs/SARIF.md): findings recorded in portcullis-baseline.json
+      # are accepted as pre-existing, so they are still reported in the comment but cannot
+      # block, even on a changed line. A missing or unreadable baseline file is exit 2 and
+      # fails this step, rather than silently gating without it.
       - name: Run Portcullis scan
         run: |
           set +e
@@ -86,6 +91,7 @@ jobs:
             scan "${{ github.workspace }}/src" \
             --provenance-range "${{ github.event.pull_request.base.sha }}..${{ github.sha }}" \
             --provenance-repo "${{ github.workspace }}" \
+            --baseline "${{ github.workspace }}/portcullis-baseline.json" \
             > portcullis-current-scan.json
           scan_exit=$?
           if [ "$scan_exit" -gt 1 ] || [ ! -s portcullis-current-scan.json ]; then

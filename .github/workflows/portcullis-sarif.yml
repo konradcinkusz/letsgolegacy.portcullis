@@ -1,0 +1,116 @@
+name: Portcullis SARIF
+
+# Ticket R3 (docs/SARIF.md): Portcullis on this repository's own pull requests, as SARIF.
+# The scan is scoped to the pull request's changed lines and judged against the committed
+# baseline (portcullis-baseline.json), so the SARIF holds only what the pull request
+# introduces. It is kept as a build artifact and uploaded to GitHub code scanning.
+#
+# A separate workflow from portcullis-pr-check.yml, which is the gate: this one reports and
+# never blocks, and it is the only one that needs `security-events: write`, so the job that
+# runs with the pull-request comment token does not get it too.
+#
+# No branch filter on `pull_request`: pull requests here are stacked, so most of them target
+# another feature branch rather than main.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: portcullis-sarif-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sarif:
+    name: Filtered SARIF
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # The changed-lines filter diffs against the pull request's base commit, which
+          # the default shallow clone does not contain. Without it the scan would fall back
+          # to the whole tree and say so in the SARIF, rather than filter by nothing.
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build the CLI
+        run: dotnet build src/Portcullis.Cli --configuration Release
+
+      # Exit 1 is the gate blocking. portcullis-pr-check.yml enforces that; here it is only
+      # recorded, so the SARIF is still published for the findings that caused it. Exit 2,
+      # or a missing SARIF or scan result, is the tool failing, and fails the step.
+      - name: Scan the pull request's changed lines into SARIF
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set +e
+          dotnet run --no-build --configuration Release --project src/Portcullis.Cli -- \
+            scan "$GITHUB_WORKSPACE/src" \
+            --provenance-range "$BASE_SHA..$HEAD_SHA" \
+            --provenance-repo "$GITHUB_WORKSPACE" \
+            --baseline "$GITHUB_WORKSPACE/portcullis-baseline.json" \
+            --sarif portcullis.sarif \
+            > portcullis-scan.json
+          scan_exit=$?
+          set -e
+          if [ "$scan_exit" -gt 1 ] || [ ! -s portcullis.sarif ] || [ ! -s portcullis-scan.json ]; then
+            echo "::error::portcullis scan failed to run (exit $scan_exit); no SARIF was produced"
+            exit 1
+          fi
+
+          # What each filter removed, next to what is left, so the run page shows why the
+          # SARIF holds what it holds.
+          python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json
+          scan = json.load(open("portcullis-scan.json"))
+          run = json.load(open("portcullis.sarif"))["runs"][0]
+          counts = run["properties"]
+          gate = scan["gate"]
+          print("### Portcullis SARIF")
+          print()
+          print("| | |")
+          print("|---|---|")
+          print(f"| Findings in the scan | {counts['findingsInScan']} |")
+          print(f"| Left out: not on a changed line | {counts['excludedOutsideChangedLines']} |")
+          print(f"| Left out: accepted by the baseline | {counts['excludedByBaseline']} |")
+          print(f"| **Results in the SARIF** | **{len(run['results'])}** |")
+          print(f"| Scope | `{counts['scope']}` |")
+          print(f"| Gate | {'blocked' if gate['blocked'] else 'not blocked'} |")
+          for notification in run["invocations"][0].get("toolExecutionNotifications", []):
+              print()
+              print(f"> {notification['level']}: {notification['message']['text']}")
+          if run["results"]:
+              print()
+              for result in run["results"]:
+                  location = result["locations"][0]["physicalLocation"] if "locations" in result else None
+                  where = (f"{location['artifactLocation']['uri']}:{location['region']['startLine']}"
+                           if location else "repository-wide")
+                  print(f"- `{result['ruleId']}` ({result['level']}) at `{where}`")
+          PY
+
+      - name: Keep the SARIF as a build artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: portcullis-sarif
+          path: |
+            portcullis.sarif
+            portcullis-scan.json
+          if-no-files-found: error
+
+      # A pull request from a fork runs with a read-only token, with which the upload is
+      # refused; the artifact above is still there for it.
+      - name: Upload to GitHub code scanning
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: portcullis.sarif
+          category: portcullis

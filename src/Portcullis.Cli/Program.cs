@@ -3,7 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Portcullis.Cli;
 using Portcullis.Engine;
+using Portcullis.Engine.Findings;
 using Portcullis.Engine.Provenance;
+using Portcullis.Engine.Sarif;
 
 var jsonOptions = new JsonSerializerOptions
 {
@@ -33,6 +35,31 @@ if (!Directory.Exists(options.Path))
     return 2;
 }
 
+// The baseline is read before anything is scanned, so a missing or malformed file stops the
+// run with exit 2 before any work is done, instead of after it. For --write-baseline nothing is
+// read: the scan is judged against a baseline accepting everything it finds, which is exactly
+// what is written below.
+Baseline? baseline = null;
+if (options.BaselinePath is not null)
+{
+    if (options.WriteBaseline)
+    {
+        baseline = Baseline.Everything(options.BaselinePath);
+    }
+    else
+    {
+        try
+        {
+            baseline = BaselineFile.Read(options.BaselinePath);
+        }
+        catch (BaselineFileException ex)
+        {
+            Console.Error.WriteLine($"portcullis: {ex.Message}");
+            return 2;
+        }
+    }
+}
+
 // Provenance is computed here, at the CLI boundary, and handed to Scanner as data —
 // the engine itself stays git-agnostic (docs/SPEC.md section 4). --provenance-repo
 // defaults to the scanned path itself; pass it explicitly whenever <path> is a
@@ -46,7 +73,22 @@ if (options.ProvenanceRange is not null)
     provenance = new GitProvenanceProvider(provenanceRoot).GetProvenance(options.ProvenanceRange);
 }
 
-var result = await Scanner.ScanAsync(options.Path, provenance, provenanceRoot);
+var result = await Scanner.ScanAsync(options.Path, provenance, provenanceRoot, baseline);
+
+if (options.WriteBaseline)
+{
+    try
+    {
+        var written = BaselineFile.Write(options.BaselinePath!, result.Violations);
+        Console.Error.WriteLine(
+            $"portcullis: wrote {written} finding(s) to the baseline '{options.BaselinePath}'; this run is judged against it.");
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+        Console.Error.WriteLine($"portcullis: could not write the baseline file '{options.BaselinePath}': {ex.Message}");
+        return 2;
+    }
+}
 
 // Both warnings below go to stderr rather than being left to whoever reads the JSON, so
 // stdout stays exactly the machine-readable document it has always been.
@@ -69,6 +111,46 @@ if (result.Gate?.DegradedReason is { } degradedReason)
         $"portcullis: warning: could not scope the gate to '{options.ProvenanceRange}' — {degradedReason}");
     Console.Error.WriteLine(
         "portcullis: warning: falling back to gating on the whole scan (Gate.Scope \"all\").");
+}
+
+// Entries that matched nothing never block anything, but a baseline nobody prunes stops saying
+// anything about the code, so they are counted out loud. Not for --write-baseline, whose file
+// has just been rewritten from this very scan.
+if (!options.WriteBaseline && result.Baseline is { } usedBaseline && usedBaseline.EntryCount > usedBaseline.AcceptedCount)
+{
+    Console.Error.WriteLine(
+        $"portcullis: note: {usedBaseline.EntryCount - usedBaseline.AcceptedCount} of the baseline's " +
+        $"{usedBaseline.EntryCount} entries matched no finding (fixed, or changed enough to be a new finding); " +
+        "--write-baseline would drop them.");
+}
+
+// The SARIF is filtered by the same changed lines the gate was scoped to. When the gate fell
+// back to the whole scan (Gate.Scope "all" with a DegradedReason), so does the SARIF, and the
+// log carries the reason as a tool notification. Locations are written relative to the
+// repository root, which is --provenance-repo when given: a consumer such as GitHub code
+// scanning resolves them against the root of the checkout, not against the scanned path.
+if (options.SarifPath is not null)
+{
+    var changedLines = result.Gate is { Scope: "diff" } && provenance is not null
+        ? ChangedLines.From(provenance, provenanceRoot!)
+        : null;
+    var sourceRoot = Path.GetFullPath(options.ProvenanceRepo ?? options.Path);
+
+    try
+    {
+        var directory = Path.GetDirectoryName(Path.GetFullPath(options.SarifPath));
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        await File.WriteAllTextAsync(options.SarifPath, SarifReport.Serialize(result, sourceRoot, changedLines));
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+    {
+        Console.Error.WriteLine($"portcullis: could not write the SARIF file '{options.SarifPath}': {ex.Message}");
+        return 2;
+    }
 }
 
 Console.WriteLine(JsonSerializer.Serialize(result, jsonOptions));

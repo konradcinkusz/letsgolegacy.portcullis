@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Portcullis.Engine.Semantics;
 using Portcullis.Engine.Configuration;
+using Portcullis.Engine.Findings;
 using Portcullis.Engine.Model;
 using Portcullis.Engine.Provenance;
 using Portcullis.Rules;
@@ -66,11 +67,19 @@ public static class Scanner
     /// scope to the degraded report's (empty) ranges, which is what previously turned any
     /// git failure into a passing gate — see <see cref="ProvenanceStatus"/> and
     /// docs/DIFF-GATE.md section 3.
+    ///
+    /// <paramref name="baseline"/>, added with the SARIF work (ticket R3, docs/SARIF.md), is
+    /// the other caller-supplied input: the fingerprints of findings a team accepted as
+    /// pre-existing. An accepted violation is still reported, with <c>Baselined</c> set, but
+    /// is not counted toward <c>Gate.BlockingErrorCount</c> — in either scope, including the
+    /// degraded fallback, since whether a finding was accepted does not depend on git. Every
+    /// violation gets its <see cref="FindingFingerprint"/> whether or not a baseline is given.
     /// </summary>
     public static async Task<ScanResult> ScanAsync(
         string path,
         ProvenanceReport? provenance = null,
         string? provenanceRoot = null,
+        Baseline? baseline = null,
         CancellationToken cancellationToken = default)
     {
         var fullPath = Path.GetFullPath(path);
@@ -110,10 +119,28 @@ public static class Scanner
         {
             var withAnalyzers = compilation.WithAnalyzers(rules, config.ToAnalyzerOptions(pathRoot: fullPath));
             var diagnostics = await withAnalyzers.GetAnalyzerDiagnosticsAsync(cancellationToken);
-            violations.AddRange(diagnostics
-                .Select(d => ToViolation(d, fullPath))
-                .OrderBy(v => v.FilePath, StringComparer.Ordinal)
-                .ThenBy(v => v.Line));
+
+            // Ordered to the column, then by rule and message, not just by file and line:
+            // analyzers run concurrently, so two findings on one line used to come out in
+            // whichever order they finished. That made the JSON differ between two scans of
+            // the same tree, and fingerprint occurrences are numbered in this order, so it
+            // has to be the same every time.
+            violations.AddRange(FindingFingerprint.Assign(diagnostics
+                .Select(d => Locate(d, fullPath, cancellationToken))
+                .OrderBy(f => f.Violation.FilePath, StringComparer.Ordinal)
+                .ThenBy(f => f.Violation.Line)
+                .ThenBy(f => f.Column)
+                .ThenBy(f => f.Violation.RuleId, StringComparer.Ordinal)
+                .ThenBy(f => f.Violation.Message, StringComparer.Ordinal)
+                .Select(f => (f.Violation, f.LineText))));
+        }
+
+        if (baseline is not null)
+        {
+            for (var i = 0; i < violations.Count; i++)
+            {
+                violations[i] = violations[i] with { Baselined = baseline.Accepts(violations[i].Fingerprint) };
+            }
         }
 
         GateResult gate;
@@ -131,12 +158,18 @@ public static class Scanner
         {
             var effectiveRoot = provenanceRoot ?? fullPath;
             ApplyProvenanceEscalation(violations, provenance, effectiveRoot, fullPath);
-            gate = ComputeDiffScopedGate(violations, provenance, effectiveRoot, fullPath);
+            gate = ComputeDiffScopedGate(violations, ChangedLines.From(provenance, effectiveRoot), fullPath);
         }
         else
         {
             gate = ComputeAbsoluteGate(violations);
         }
+
+        // For --write-baseline the baseline is about to hold every finding of this scan, so
+        // that is its size.
+        var baselineUse = baseline is null
+            ? null
+            : new ScanBaseline(baseline.Path, baseline.Count ?? violations.Count, violations.Count(v => v.Baselined));
 
         stopwatch.Stop();
 
@@ -151,7 +184,8 @@ public static class Scanner
             violations,
             ScanSummary.From(violations),
             gate,
-            new ScanConfiguration(config.Path, config.Error));
+            new ScanConfiguration(config.Path, config.Error),
+            baselineUse);
     }
 
     private static string EngineVersion =>
@@ -164,6 +198,24 @@ public static class Scanner
         var relative = Path.GetRelativePath(root, filePath);
         var segments = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         return segments.Any(s => ExcludedSegments.Contains(s, StringComparer.OrdinalIgnoreCase));
+    }
+
+    // A diagnostic as a violation, plus what ordering and fingerprinting need beyond the
+    // violation record: the column the finding starts at, and the text of its line. A
+    // finding with no source location has neither; its message stands in for the line text
+    // (see FindingFingerprint).
+    private static (Violation Violation, int Column, string LineText) Locate(
+        Diagnostic diagnostic, string root, CancellationToken cancellationToken)
+    {
+        var violation = ToViolation(diagnostic, root);
+        var location = diagnostic.Location;
+        if (!location.IsInSource || location.SourceTree is null)
+        {
+            return (violation, 0, violation.Message);
+        }
+
+        var line = location.SourceTree.GetText(cancellationToken).Lines.GetLineFromPosition(location.SourceSpan.Start);
+        return (violation, location.SourceSpan.Start - line.Start, line.ToString());
     }
 
     private static Violation ToViolation(Diagnostic diagnostic, string root)
@@ -196,8 +248,8 @@ public static class Scanner
     private static void ApplyProvenanceEscalation(
         List<Violation> violations, ProvenanceReport provenance, string provenanceRoot, string scanRoot)
     {
-        var aiRanges = ResolveRanges(provenance.Ranges.Where(r => r.Source == ProvenanceSource.Ai), provenanceRoot);
-        if (aiRanges.Count == 0)
+        var aiLines = ChangedLines.From(provenance.Ranges.Where(r => r.Source == ProvenanceSource.Ai), provenanceRoot);
+        if (aiLines.IsEmpty)
         {
             return;
         }
@@ -205,7 +257,7 @@ public static class Scanner
         for (var i = 0; i < violations.Count; i++)
         {
             var violation = violations[i];
-            if (IsWithinRanges(violation, scanRoot, aiRanges))
+            if (aiLines.Contains(violation, scanRoot))
             {
                 violations[i] = violation with { Severity = EscalateSeverity(violation.Severity) };
             }
@@ -219,38 +271,22 @@ public static class Scanner
     // wrote it. Runs after escalation on the same (already-mutated) violations list, so
     // an escalated warning->error correctly counts here too.
     private static GateResult ComputeDiffScopedGate(
-        List<Violation> violations, ProvenanceReport provenance, string provenanceRoot, string scanRoot)
-    {
-        var allRanges = ResolveRanges(provenance.Ranges, provenanceRoot);
-        var blockingCount = violations.Count(v => v.Severity == "error" && IsWithinRanges(v, scanRoot, allRanges));
-        return new GateResult(blockingCount > 0, "diff", blockingCount);
-    }
+        List<Violation> violations, ChangedLines changedLines, string scanRoot) =>
+        Judge("diff", violations.Where(v => v.Severity == "error" && changedLines.Contains(v, scanRoot)).ToList());
 
     // The original, unconditional M0-M5 behavior: any error anywhere in the scan blocks.
     // Still the default whenever no diff range is supplied, for full backward
     // compatibility with every existing caller.
-    private static GateResult ComputeAbsoluteGate(IReadOnlyList<Violation> violations)
+    private static GateResult ComputeAbsoluteGate(IReadOnlyList<Violation> violations) =>
+        Judge("all", violations.Where(v => v.Severity == "error").ToList());
+
+    // Every error in scope blocks unless the baseline accepted it. Without a baseline no
+    // violation is Baselined, so this is exactly the count both gates always took.
+    private static GateResult Judge(string scope, List<Violation> errorsInScope)
     {
-        var errorCount = violations.Count(v => v.Severity == "error");
-        return new GateResult(errorCount > 0, "all", errorCount);
+        var blocking = errorsInScope.Count(v => !v.Baselined);
+        return new GateResult(blocking > 0, scope, blocking, AcceptedByBaselineCount: errorsInScope.Count - blocking);
     }
-
-    private static List<(string Path, int StartLine, int EndLine)> ResolveRanges(
-        IEnumerable<ProvenanceRange> ranges, string provenanceRoot) =>
-        ranges.Select(r => (Path: ToAbsolutePath(provenanceRoot, r.FilePath), r.StartLine, r.EndLine)).ToList();
-
-    private static bool IsWithinRanges(
-        Violation violation, string scanRoot, List<(string Path, int StartLine, int EndLine)> ranges)
-    {
-        var violationPath = ToAbsolutePath(scanRoot, violation.FilePath);
-        return ranges.Any(r =>
-            string.Equals(r.Path, violationPath, StringComparison.OrdinalIgnoreCase)
-            && violation.Line >= r.StartLine
-            && violation.Line <= r.EndLine);
-    }
-
-    private static string ToAbsolutePath(string root, string relativePath) =>
-        Path.GetFullPath(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
 
     private static string EscalateSeverity(string severity) => severity switch
     {

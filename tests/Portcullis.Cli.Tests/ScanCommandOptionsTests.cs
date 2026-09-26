@@ -110,4 +110,66 @@ public class ScanCommandOptionsTests
         Assert.Null(ScanCommandOptions.Parse(["scan", "/repo", "/other"], out var error));
         Assert.Contains("/other", error);
     }
+
+    [Fact]
+    public void Parse_SarifAndBaselineFlags_ParseEveryValue()
+    {
+        var options = ScanCommandOptions.Parse(
+            ["scan", "/repo/src", "--sarif", "out/portcullis.sarif", "--baseline", "portcullis-baseline.json",
+             "--provenance-range", "abc..def"], out var error);
+
+        Assert.NotNull(options);
+        Assert.Equal(string.Empty, error);
+        Assert.Equal("out/portcullis.sarif", options.SarifPath);
+        Assert.Equal("portcullis-baseline.json", options.BaselinePath);
+        Assert.False(options.WriteBaseline);
+        Assert.Equal("abc..def", options.ProvenanceRange);
+    }
+
+    [Fact]
+    public void Parse_WriteBaseline_TakesNoValueAndNeedsTheBaselineFile()
+    {
+        var options = ScanCommandOptions.Parse(
+            ["scan", "/repo", "--write-baseline", "--baseline", "portcullis-baseline.json"], out var error);
+
+        Assert.NotNull(options);
+        Assert.Equal(string.Empty, error);
+        Assert.True(options.WriteBaseline);
+        Assert.Equal("portcullis-baseline.json", options.BaselinePath);
+    }
+
+    [Fact]
+    public void Parse_WriteBaselineWithNoBaselineFile_IsRejectedRatherThanIgnored()
+    {
+        // Ignoring it would turn a run meant to record a baseline into one that gates on
+        // every pre-existing finding.
+        var options = ScanCommandOptions.Parse(["scan", "/repo", "--write-baseline"], out var error);
+
+        Assert.Null(options);
+        Assert.Contains("--write-baseline", error);
+        Assert.Contains("--baseline", error);
+    }
+
+    [Theory]
+    [InlineData("--sarif")]
+    [InlineData("--baseline")]
+    public void Parse_TrailingSarifOrBaselineFlagWithNoValue_IsRejected(string flag)
+    {
+        var options = ScanCommandOptions.Parse(["scan", "/repo", flag], out var error);
+
+        Assert.Null(options);
+        Assert.Contains(flag, error);
+        Assert.Contains("missing its value", error);
+    }
+
+    [Fact]
+    public void Parse_NoSarifOrBaselineFlags_LeavesThemUnset()
+    {
+        var options = ScanCommandOptions.Parse(["scan", "/repo"], out _);
+
+        Assert.NotNull(options);
+        Assert.Null(options.SarifPath);
+        Assert.Null(options.BaselinePath);
+        Assert.False(options.WriteBaseline);
+    }
 }
