@@ -28,6 +28,23 @@ public static class PortcullisConventionKeys
     public const string KernelLineCeiling = "portcullis_kernel_line_ceiling";
 
     /// <summary>
+    /// Folders in which the four migration rules (<c>PORTCULLIS_MIG_*</c>) report nothing:
+    /// a compatibility layer that still talks to System.Web on purpose during an
+    /// incremental migration, say, or a project that has not been migrated yet. Matched
+    /// like every other folder convention. Empty by default — nothing is exempt until a
+    /// team says so, because an exemption nobody asked for is a hole in the gate.
+    /// </summary>
+    public const string MigrationExemptFolders = "portcullis_migration_exempt_folders";
+
+    /// <summary>
+    /// Fully-qualified names of System.Web types that <see cref="SystemWebUsageAnalyzer"/>
+    /// does not report, because they exist in modern .NET itself rather than only in the
+    /// .NET Framework. Defaults to the two the .NET runtime ships in
+    /// <c>System.Web.HttpUtility.dll</c>.
+    /// </summary>
+    public const string SystemWebAllowedTypes = "portcullis_system_web_allowed_types";
+
+    /// <summary>
     /// The directory every convention is matched relative to. Host-supplied rather than
     /// team-supplied: the CLI sets it to the scan root automatically.
     ///
@@ -53,13 +70,16 @@ public static class PortcullisConventionKeys
     [
         KernelFolders, EntityFolders, AdapterFolders,
         VendorNamespaces, EntryPointFileNames, KernelLineCeiling,
+        MigrationExemptFolders, SystemWebAllowedTypes,
     ];
 }
 
 /// <summary>
 /// The folder names, file names, vendor namespaces and line ceiling the rules match
 /// against — the thing that turns "portcullis enforces one specific architecture" into
-/// "portcullis enforces the architecture you declared".
+/// "portcullis enforces the architecture you declared". The migration rules add two
+/// knobs of their own: where they stay silent, and which System.Web types count as
+/// modern .NET.
 ///
 /// Every value here was a hardcoded <c>private static readonly string[]</c> inside an
 /// individual analyzer. A team whose shared kernel is called <c>Common</c>, or whose
@@ -104,7 +124,9 @@ public sealed class PortcullisConventions
             "Anthropic", "OpenAI", "Stripe", "Twilio", "SendGrid", "PayPal",
             "Amazon", "Azure", "Google.Cloud", "Firebase", "MailKit"),
         entryPointFileNames: ImmutableArray.Create("Program.cs"),
-        kernelLineCeiling: KernelBoundaryAnalyzer.LocCeiling);
+        kernelLineCeiling: KernelBoundaryAnalyzer.LocCeiling,
+        migrationExemptFolders: ImmutableArray<string>.Empty,
+        systemWebAllowedTypes: ImmutableArray.Create("System.Web.HttpUtility", "System.Web.IHtmlString"));
 
     private PortcullisConventions(
         ImmutableArray<string> kernelFolders,
@@ -113,6 +135,8 @@ public sealed class PortcullisConventions
         ImmutableArray<string> vendorNamespaces,
         ImmutableArray<string> entryPointFileNames,
         int kernelLineCeiling,
+        ImmutableArray<string> migrationExemptFolders,
+        ImmutableArray<string> systemWebAllowedTypes,
         ImmutableHashSet<string>? explicitlyConfiguredKeys = null,
         string? pathRoot = null)
     {
@@ -124,6 +148,8 @@ public sealed class PortcullisConventions
         VendorNamespaces = vendorNamespaces;
         EntryPointFileNames = entryPointFileNames;
         KernelLineCeiling = kernelLineCeiling;
+        MigrationExemptFolders = migrationExemptFolders;
+        SystemWebAllowedTypes = systemWebAllowedTypes;
     }
 
     public ImmutableArray<string> KernelFolders { get; }
@@ -137,6 +163,12 @@ public sealed class PortcullisConventions
     public ImmutableArray<string> EntryPointFileNames { get; }
 
     public int KernelLineCeiling { get; }
+
+    /// <summary>Folders where the migration rules report nothing. See <see cref="PortcullisConventionKeys.MigrationExemptFolders"/>.</summary>
+    public ImmutableArray<string> MigrationExemptFolders { get; }
+
+    /// <summary>System.Web types that exist in modern .NET and are not reported. See <see cref="PortcullisConventionKeys.SystemWebAllowedTypes"/>.</summary>
+    public ImmutableArray<string> SystemWebAllowedTypes { get; }
 
     /// <summary>
     /// The <see cref="PortcullisConventionKeys"/> the host actually supplied a value for.
@@ -229,6 +261,8 @@ public sealed class PortcullisConventions
             ReadList(global, PortcullisConventionKeys.VendorNamespaces, Default.VendorNamespaces),
             ReadList(global, PortcullisConventionKeys.EntryPointFileNames, Default.EntryPointFileNames),
             ReadInt(global, PortcullisConventionKeys.KernelLineCeiling, Default.KernelLineCeiling),
+            ReadList(global, PortcullisConventionKeys.MigrationExemptFolders, Default.MigrationExemptFolders),
+            ReadList(global, PortcullisConventionKeys.SystemWebAllowedTypes, Default.SystemWebAllowedTypes),
             configured.ToImmutable(),
             global.TryGetValue(PortcullisConventionKeys.PathRoot, out var root) ? root : null);
     }

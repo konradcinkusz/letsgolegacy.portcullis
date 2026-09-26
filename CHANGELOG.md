@@ -42,6 +42,14 @@ happened is not written as though it had.
   `action.yml`'s default tools version disagrees with the tag being released.
 - **Project documentation for outside readers** — `CONTRIBUTING.md`, `SECURITY.md`,
   `CODE_OF_CONDUCT.md`, issue and pull-request templates, and this changelog.
+- **Migration rule set** (ticket R2) — four semantic analyzers for .NET Framework idioms
+  that survive a migration to modern .NET: `PORTCULLIS_MIG_SYSTEM_WEB`,
+  `PORTCULLIS_MIG_HTTPCONTEXT_CURRENT`, `PORTCULLIS_MIG_SYNC_OVER_ASYNC` and
+  `PORTCULLIS_MIG_CONFIGURATION_MANAGER`, category `Migration`, configurable through
+  `migrationExemptFolders` and `systemWebAllowedTypes`. Tested in both directions, with
+  hand-written mutants and a Stryker.NET score of 100 % (214 of 214 mutants detected),
+  enforced in CI. See [`docs/rules/MIGRATION.md`](docs/rules/MIGRATION.md) and
+  [`docs/MUTATIONS.md`](docs/MUTATIONS.md) §8.
 
 ### Changed
 
@@ -65,6 +73,11 @@ happened is not written as though it had.
   name appears nowhere in this repository's tree — the dated records now use today's
   identifiers, each with a note saying so — and CI fails if it reappears.
 
+- **The CLI scan compiles against the runtime's framework assemblies** and against
+  declarations of the .NET Framework APIs the migration rules look for, instead of
+  `System.Private.CoreLib` alone, so a semantic rule binds the same symbols in a scan as in
+  a real build. No existing rule's output changed (the full suite passed unmodified).
+
 ### Fixed
 
 - **The gate no longer fails open when git fails.** `ProvenanceStatus` distinguishes
@@ -83,7 +96,8 @@ Recorded here because they are load-bearing for anyone evaluating this, and stat
 length in the README's *Honest limits*:
 
 - Single-compilation analysis in the CLI path: types from referenced packages or other
-  projects do not resolve. The analyzer package does not have this limitation.
+  projects do not resolve. The analyzer package does not have this limitation. The
+  migration rules' consequences of it are listed per rule in `docs/rules/MIGRATION.md`.
 - Nine of the fifteen principles are unimplemented — five need cross-file, cross-repo or
   historical context, four are not C# at all.
 - The project is unpublished: no package, no container and no `v*` tag exist yet.

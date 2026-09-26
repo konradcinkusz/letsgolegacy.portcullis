@@ -53,8 +53,8 @@ public class ExtensibilityInheritanceAnalyzerTests
     [Fact]
     public async Task DoesNotFireWhenBaseClassIsAnUnresolvedFrameworkType()
     {
-        // ControllerBase/DbContext never resolve at all in this milestone's
-        // single-compilation, corelib-only scanner (docs/BOOTSTRAP.md's scope note) —
+        // ControllerBase/DbContext never resolve at all in the scanner's single
+        // compilation, which references no ASP.NET Core or EF Core (docs/BOOTSTRAP.md) —
         // this is the mechanism the rule relies on to avoid flagging legitimate
         // framework extension points. See ExtensibilityInheritanceAnalyzer's own doc
         // comment for the full reasoning.

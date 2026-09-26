@@ -1,0 +1,27 @@
+{
+  "stryker-config": {
+    "project": "Portcullis.Rules.csproj",
+    "mutate": [
+      "**/MigrationSymbols.cs",
+      "**/SystemWebUsageAnalyzer.cs",
+      "**/HttpContextCurrentAnalyzer.cs",
+      "**/SyncOverAsyncAnalyzer.cs",
+      "**/ConfigurationManagerAnalyzer.cs"
+    ],
+    "mutation-level": "Standard",
+    "thresholds": {
+      "high": 100,
+      "low": 95,
+      "break": 95
+    },
+    "reporters": [
+      "progress",
+      "cleartext",
+      "html",
+      "json"
+    ],
+    "ignore-methods": [
+      "EnableConcurrentExecution"
+    ]
+  }
+}

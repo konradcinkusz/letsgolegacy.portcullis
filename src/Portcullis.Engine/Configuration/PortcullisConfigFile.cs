@@ -98,6 +98,8 @@ public sealed class PortcullisConfigFile
         AddList(builder, PortcullisConventionKeys.AdapterFolders, document.AdapterFolders);
         AddList(builder, PortcullisConventionKeys.VendorNamespaces, document.VendorNamespaces);
         AddList(builder, PortcullisConventionKeys.EntryPointFileNames, document.EntryPointFileNames);
+        AddList(builder, PortcullisConventionKeys.MigrationExemptFolders, document.MigrationExemptFolders);
+        AddList(builder, PortcullisConventionKeys.SystemWebAllowedTypes, document.SystemWebAllowedTypes);
         if (document.KernelLineCeiling is { } ceiling)
         {
             builder[PortcullisConventionKeys.KernelLineCeiling] = ceiling.ToString();
@@ -188,6 +190,12 @@ internal sealed record PortcullisConfigDocument
 
     [JsonPropertyName("kernelLineCeiling")]
     public int? KernelLineCeiling { get; init; }
+
+    [JsonPropertyName("migrationExemptFolders")]
+    public IReadOnlyList<string>? MigrationExemptFolders { get; init; }
+
+    [JsonPropertyName("systemWebAllowedTypes")]
+    public IReadOnlyList<string>? SystemWebAllowedTypes { get; init; }
 }
 
 /// <summary>

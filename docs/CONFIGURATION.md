@@ -1,8 +1,11 @@
 # Configuration
 
-Every rule portcullis ships is convention-based: it recognises a shared kernel, a domain
-layer, an adapter boundary or a service entry point by **folder and file naming**, because
-nothing in ordinary C# declares those roles explicitly.
+Every principle rule portcullis ships is convention-based: it recognises a shared kernel,
+a domain layer, an adapter boundary or a service entry point by **folder and file
+naming**, because nothing in ordinary C# declares those roles explicitly. (The four
+migration rules are the exception: they decide on the symbols the compiler binds and need
+no convention to find anything — their two settings, both exemptions, are in the same file
+and listed below.)
 
 Until this was configurable, that meant portcullis enforced *one specific* architecture. A
 team whose shared kernel is called `Common/`, or whose adapters live in `External/`, got a
@@ -51,7 +54,9 @@ action-at-a-distance that makes "why is this rule not firing?" hard to answer.
   "adapterFolders": ["External", "Gateways"],
   "vendorNamespaces": ["Stripe", "Google.Cloud", "Acme.Payments"],
   "entryPointFileNames": ["Program.cs", "Startup.cs"],
-  "kernelLineCeiling": 500
+  "kernelLineCeiling": 500,
+  "migrationExemptFolders": ["Legacy"],
+  "systemWebAllowedTypes": ["System.Web.HttpUtility", "System.Web.IHtmlString"]
 }
 ```
 
@@ -74,6 +79,8 @@ portcullis_adapter_folders = External, Gateways
 portcullis_vendor_namespaces = Stripe, Google.Cloud, Acme.Payments
 portcullis_entry_point_file_names = Program.cs, Startup.cs
 portcullis_kernel_line_ceiling = 500
+portcullis_migration_exempt_folders = Legacy
+portcullis_system_web_allowed_types = System.Web.HttpUtility, System.Web.IHtmlString
 ```
 
 Lists are comma-separated; surrounding whitespace is trimmed.
@@ -90,6 +97,13 @@ Lists are comma-separated; surrounding whitespace is trimmed.
 | `portcullis_vendor_namespaces` / `vendorNamespaces` | `Anthropic, OpenAI, Stripe, Twilio, SendGrid, PayPal, Amazon, Azure, Google.Cloud, Firebase, MailKit` | `PORTCULLIS_P11_VENDOR_SDK_OUTSIDE_ADAPTER` |
 | `portcullis_entry_point_file_names` / `entryPointFileNames` | `Program.cs` | `PORTCULLIS_P15_MISSING_SERVICE_DEFAULTS`, and P11's composition-root exemption |
 | `portcullis_kernel_line_ceiling` / `kernelLineCeiling` | `800` | `PORTCULLIS_P2_KERNEL_LOC_CEILING` |
+| `portcullis_migration_exempt_folders` / `migrationExemptFolders` | *(none)* | All four `PORTCULLIS_MIG_*` rules report nothing in these folders |
+| `portcullis_system_web_allowed_types` / `systemWebAllowedTypes` | `System.Web.HttpUtility, System.Web.IHtmlString` | `PORTCULLIS_MIG_SYSTEM_WEB` does not report these fully-qualified types |
+
+The two migration keys are described with their rules in
+[`rules/MIGRATION.md`](rules/MIGRATION.md#configuration). They are exemptions, not
+conventions the rules depend on to find anything, so the coverage diagnostics below never
+report them: an exemption that matches no folder makes the gate stricter, never vacuous.
 
 ### Folder matching
 

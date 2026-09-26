@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using Portcullis.Engine.Semantics;
 using Portcullis.Engine.Configuration;
 using Portcullis.Engine.Model;
 using Portcullis.Engine.Provenance;
@@ -15,11 +16,13 @@ namespace Portcullis.Engine;
 /// compilation, runs the registered rules against it, and maps diagnostics to
 /// the violation record frozen in docs/SPEC.md section 2.
 ///
-/// Scope of this milestone (M2): syntax + single-compilation semantic analysis
-/// only. Target source is parsed directly with CSharpSyntaxTree, not loaded
-/// through MSBuildWorkspace/project references — cross-project or cross-assembly
-/// semantic checks are out of scope until a later milestone wires in real project
-/// loading. Recorded honestly in docs/BOOTSTRAP.md, not hidden here.
+/// Scope: syntax + single-compilation semantic analysis only. Target source is parsed
+/// directly with CSharpSyntaxTree, not loaded through MSBuildWorkspace/project
+/// references — cross-project or NuGet-package semantic checks are out of scope until real
+/// project loading exists. Recorded honestly in docs/BOOTSTRAP.md, not hidden here. What
+/// the compilation does reference — the runtime's framework assemblies and a declared
+/// surface of the legacy .NET Framework APIs the migration rules look for — is
+/// <see cref="ScanReferences"/>, and its doc comment says why.
 /// </summary>
 public static class Scanner
 {
@@ -90,7 +93,7 @@ public static class Scanner
         var compilation = CSharpCompilation.Create(
             assemblyName: "PortcullisScanTarget",
             syntaxTrees: syntaxTrees,
-            references: [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
+            references: ScanReferences.All,
             options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         var rules = RuleRegistry.All;

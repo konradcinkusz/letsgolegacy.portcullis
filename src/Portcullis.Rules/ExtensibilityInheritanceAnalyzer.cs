@@ -13,10 +13,10 @@ namespace Portcullis.Rules;
 /// class that is itself declared in the scanned source.
 ///
 /// Restricting the check to source-declared base types (<c>Locations.Any(IsInSource)</c>)
-/// is deliberate, not incidental: this milestone's scanner (docs/BOOTSTRAP.md's scope
-/// note) parses target source directly and references only corelib, so a base type from
-/// ASP.NET Core, EF Core, or any other unreferenced framework assembly never resolves to
-/// a usable symbol at all — it comes back as an unresolved/error type, which this rule
+/// is deliberate, not incidental: the scanner (docs/BOOTSTRAP.md's scope note) parses
+/// target source directly and references no NuGet package and no framework beyond the
+/// .NET runtime's own, so a base type from ASP.NET Core, EF Core, or any other
+/// unreferenced assembly never resolves to a usable symbol at all — it comes back as an unresolved/error type, which this rule
 /// already excludes via <c>TypeKind == TypeKind.Class</c>. That is what keeps this rule
 /// from flagging `: ControllerBase` or `: DbContext`, which are legitimate framework
 /// extension points, not the "own ModuleBase" pattern P10 exists to catch.

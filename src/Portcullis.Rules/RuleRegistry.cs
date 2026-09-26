@@ -31,14 +31,23 @@ namespace Portcullis.Rules;
 /// (P15) — bringing all 6 Expressible principles to parity. Results in
 /// docs/MUTATIONS.md's follow-up section.
 ///
-/// <see cref="ConventionCoverageAnalyzer"/> is the one entry here that is not a principle
-/// rule. It reports when the folder and file-name conventions the others match against
-/// find nothing, which is why its Category is "Meta" rather than a "P&lt;n&gt;" id — it
-/// describes the gate's own coverage, not a violation of any architecture-standards
-/// principle. It lives in the registry rather than beside it because it must observe
-/// exactly the compilation the real rules observe, through exactly the same
-/// <see cref="PortcullisConventions"/>; computing coverage anywhere else would let it drift
-/// from what the rules actually did and confidently report the wrong answer.
+/// <see cref="ConventionCoverageAnalyzer"/> is not a principle rule. It reports when the
+/// folder and file-name conventions the others match against find nothing, which is why
+/// its Category is "Meta" rather than a "P&lt;n&gt;" id — it describes the gate's own
+/// coverage, not a violation of any architecture-standards principle. It lives in the
+/// registry rather than beside it because it must observe exactly the compilation the real
+/// rules observe, through exactly the same <see cref="PortcullisConventions"/>; computing
+/// coverage anywhere else would let it drift from what the rules actually did and
+/// confidently report the wrong answer.
+///
+/// Nor are the four migration rules — <see cref="SystemWebUsageAnalyzer"/>,
+/// <see cref="HttpContextCurrentAnalyzer"/>, <see cref="SyncOverAsyncAnalyzer"/> and
+/// <see cref="ConfigurationManagerAnalyzer"/>, ids <c>PORTCULLIS_MIG_*</c>. They look for
+/// .NET Framework idioms that survive a migration to modern .NET, which no single P1–P15
+/// principle names, so their Category is "Migration" and their reasoning lives in
+/// docs/rules/MIGRATION.md. Unlike the principle rules they are semantic rather than
+/// convention-driven: each decision is made on a symbol the compiler bound (see
+/// <see cref="MigrationSymbols"/>), never on a folder name or on the text of the source.
 /// </summary>
 public static class RuleRegistry
 {
@@ -49,5 +58,9 @@ public static class RuleRegistry
         new PersistencePortabilityAnalyzer(),
         new AntiCorruptionEdgeAnalyzer(),
         new ObservabilityBuildTimeAnalyzer(),
+        new SystemWebUsageAnalyzer(),
+        new HttpContextCurrentAnalyzer(),
+        new SyncOverAsyncAnalyzer(),
+        new ConfigurationManagerAnalyzer(),
         new ConventionCoverageAnalyzer());
 }

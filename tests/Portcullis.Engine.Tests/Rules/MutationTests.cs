@@ -4,10 +4,10 @@ using Portcullis.Engine.Tests.Rules.Mutants;
 namespace Portcullis.Engine.Tests.Rules;
 
 /// <summary>
-/// The mutation pass: for each of the 5 diagnostics across Track A's 3 rules, a
-/// deliberately broken variant lives under Rules/Mutants/, swapped in place of the real
-/// analyzer for exactly this test — same fixture, same assertion shape, only the
-/// analyzer instance differs. Each test asserts, in order: the real rule catches the
+/// The mutation pass: for each diagnostic — the principle rules, the coverage meta-rule
+/// and the four migration rules — a deliberately broken variant lives under
+/// Rules/Mutants/, swapped in place of the real analyzer for exactly this test — same
+/// fixture, same assertion shape, only the analyzer instance differs. Each test asserts, in order: the real rule catches the
 /// target violation (the sanity check — without it, "the mutant missed it" proves
 /// nothing), then the mutant does not. Results are recorded honestly in
 /// docs/MUTATIONS.md, including the one variant that survived on first attempt and the
@@ -238,6 +238,129 @@ public class MutationTests
 
         var mutant = await AnalyzerTestHelper.GetDiagnosticsAsync(new HostBuilderFactoryNarrowedMutant(), files);
         Assert.DoesNotContain(mutant, d => d.Id == ObservabilityBuildTimeAnalyzer.MissingServiceDefaultsRule.Id);
+    }
+
+    // --- migration rules (docs/MUTATIONS.md section 8) ---
+
+    [Fact]
+    public async Task SystemWeb_RealCatchesButMutantMisses()
+    {
+        const string source = """
+            using System.Web.SessionState;
+
+            namespace Shop;
+
+            public class Basket
+            {
+                public void Save(HttpSessionState session) { }
+            }
+            """;
+        var files = new[] { ("src/Shop/Basket.cs", source) };
+
+        var real = await AnalyzerTestHelper.GetDiagnosticsAsync(new SystemWebUsageAnalyzer(), files);
+        Assert.Equal(2, real.Count(d => d.Id == SystemWebUsageAnalyzer.SystemWebRule.Id));
+
+        var mutant = await AnalyzerTestHelper.GetDiagnosticsAsync(new SystemWebNestedNamespacesMutant(), files);
+        Assert.DoesNotContain(mutant, d => d.Id == SystemWebUsageAnalyzer.SystemWebRule.Id);
+    }
+
+    [Fact]
+    public async Task SystemWebByShortName_RealStaysSilentButMutantFires()
+    {
+        // Inverted, like the convention-coverage case below: the failure a text match
+        // introduces is a false positive on ASP.NET Core's own HttpContext.
+        const string aspNetCore = """
+            namespace Microsoft.AspNetCore.Http
+            {
+                public abstract class HttpContext
+                {
+                    public abstract object Items { get; }
+                }
+            }
+            """;
+        const string endpoint = """
+            using Microsoft.AspNetCore.Http;
+
+            namespace Shop;
+
+            public static class Endpoint
+            {
+                public static object Items(HttpContext context) => context.Items;
+            }
+            """;
+        var files = new[] { ("src/Stubs/Http.cs", aspNetCore), ("src/Shop/Endpoint.cs", endpoint) };
+
+        var real = await AnalyzerTestHelper.GetDiagnosticsAsync(new SystemWebUsageAnalyzer(), files);
+        Assert.DoesNotContain(real, d => d.Id == SystemWebUsageAnalyzer.SystemWebRule.Id);
+
+        var mutant = await AnalyzerTestHelper.GetDiagnosticsAsync(new SystemWebShortNameMutant(), files);
+        Assert.Contains(mutant, d => d.Id == SystemWebUsageAnalyzer.SystemWebRule.Id);
+    }
+
+    [Fact]
+    public async Task HttpContextCurrent_RealCatchesButMutantMisses()
+    {
+        const string source = """
+            using System.Web;
+
+            namespace Shop;
+
+            public static class Ambient
+            {
+                public static object User() => HttpContext.Current.User;
+            }
+            """;
+        var files = new[] { ("src/Shop/Ambient.cs", source) };
+
+        var real = await AnalyzerTestHelper.GetDiagnosticsAsync(new HttpContextCurrentAnalyzer(), files);
+        Assert.Contains(real, d => d.Id == HttpContextCurrentAnalyzer.HttpContextCurrentRule.Id);
+
+        var mutant = await AnalyzerTestHelper.GetDiagnosticsAsync(new HttpContextCurrentOwnerMutant(), files);
+        Assert.DoesNotContain(mutant, d => d.Id == HttpContextCurrentAnalyzer.HttpContextCurrentRule.Id);
+    }
+
+    [Fact]
+    public async Task SyncOverAsync_RealCatchesButMutantMisses()
+    {
+        const string source = """
+            using System.Threading.Tasks;
+
+            namespace Shop;
+
+            public class Orders
+            {
+                public int Count(Task<int> pending) => pending.GetAwaiter().GetResult();
+            }
+            """;
+        var files = new[] { ("src/Shop/Orders.cs", source) };
+
+        var real = await AnalyzerTestHelper.GetDiagnosticsAsync(new SyncOverAsyncAnalyzer(), files);
+        Assert.Contains(real, d => d.Id == SyncOverAsyncAnalyzer.SyncOverAsyncRule.Id);
+
+        var mutant = await AnalyzerTestHelper.GetDiagnosticsAsync(new SyncOverAsyncGenericAwaitersDroppedMutant(), files);
+        Assert.DoesNotContain(mutant, d => d.Id == SyncOverAsyncAnalyzer.SyncOverAsyncRule.Id);
+    }
+
+    [Fact]
+    public async Task ConfigurationManager_RealCatchesButMutantMisses()
+    {
+        const string source = """
+            using System.Configuration;
+
+            namespace Shop;
+
+            public static class Settings
+            {
+                public static object Shipping() => ConfigurationManager.GetSection("shop/shipping");
+            }
+            """;
+        var files = new[] { ("src/Shop/Settings.cs", source) };
+
+        var real = await AnalyzerTestHelper.GetDiagnosticsAsync(new ConfigurationManagerAnalyzer(), files);
+        Assert.Contains(real, d => d.Id == ConfigurationManagerAnalyzer.ConfigurationManagerRule.Id);
+
+        var mutant = await AnalyzerTestHelper.GetDiagnosticsAsync(new ConfigurationManagerPropertiesOnlyMutant(), files);
+        Assert.DoesNotContain(mutant, d => d.Id == ConfigurationManagerAnalyzer.ConfigurationManagerRule.Id);
     }
 
     private static string Padding(int lines) =>

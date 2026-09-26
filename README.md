@@ -129,6 +129,20 @@ The other nine principles are not implemented, and
 judgment a single-snapshot analyzer does not have, and four are not C# at all
 (Dockerfiles, `fly.toml`, CI YAML, prose).
 
+**Migration rules.** Four more diagnostics look for .NET Framework idioms that survive a
+migration to modern .NET — code that still compiles, through a shim or a package, and
+still carries the old runtime's assumptions. They decide on the symbols the compiler
+binds, not on text, so ASP.NET Core's `HttpContext` and the modern
+`Microsoft.Extensions.Configuration.ConfigurationManager` are never mistaken for the old
+ones. Reasoning, examples and known gaps: [`docs/rules/MIGRATION.md`](docs/rules/MIGRATION.md).
+
+| Rule id | Default | What it catches |
+|---|---|---|
+| `PORTCULLIS_MIG_SYSTEM_WEB` | warning | Any use of a System.Web namespace or type — `using`, qualified names, type references |
+| `PORTCULLIS_MIG_HTTPCONTEXT_CURRENT` | error | Request state read through the static `System.Web.HttpContext.Current` |
+| `PORTCULLIS_MIG_SYNC_OVER_ASYNC` | warning | Blocking on a task: `.Result`, `.Wait()`, `.GetAwaiter().GetResult()` |
+| `PORTCULLIS_MIG_CONFIGURATION_MANAGER` | error | Settings read through `ConfigurationManager` instead of `IOptions<T>`/`IConfiguration` — on modern .NET it no longer reads `web.config`, so values come back null |
+
 ## The two things that make it more than a linter
 
 **A gate scoped to the pull request's own diff.** Point a rule engine at a real codebase
@@ -153,6 +167,7 @@ session-level-averaging failure it was built not to repeat.
 | [`docs/TUTORIAL.md`](docs/TUTORIAL.md) | **Start here to use it:** CI setup for GitHub/GitLab/Azure DevOps, and how to adopt it on a codebase that already has violations |
 | [`docs/index.html`](docs/index.html) | The same guide as a styled page — the stranger-facing surface if GitHub Pages is enabled for `/docs` |
 | [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) | Telling the rules where your kernel, domain, adapters and entry points live |
+| [`docs/rules/MIGRATION.md`](docs/rules/MIGRATION.md) | The four migration rules: what each catches, why it matters when moving from .NET Framework to .NET 10, examples, and known gaps |
 | [`docs/SPEC.md`](docs/SPEC.md) | The frozen contracts: rule format, violation schema, output JSON, provenance interface, and a verdict on all 15 principles |
 | [`docs/DIFF-GATE.md`](docs/DIFF-GATE.md) | The diff-scoped merge gate |
 | [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md) | How each artifact ships and why — including why the GitHub Action is composite rather than a container |
@@ -169,6 +184,10 @@ session-level-averaging failure it was built not to repeat.
 - **Single-compilation analysis.** Source is parsed directly rather than loaded through
   MSBuild, so a type from a referenced NuGet package or another project does not resolve.
   Several rules are written to rely on exactly that; others would be sharper without it.
+  The scan does reference the .NET runtime's own framework assemblies and declarations of
+  the .NET Framework APIs the migration rules look for, so those rules bind the same
+  symbols in the CLI as in a real build — see
+  [`docs/rules/MIGRATION.md`](docs/rules/MIGRATION.md#how-the-rules-decide).
 - **Rules are still convention-based, but the conventions are yours.** "Kernel",
   "Domain", "adapter" are recognized by folder and file naming rather than by anything
   declared in the code. Which names those are is configurable per repository — see
