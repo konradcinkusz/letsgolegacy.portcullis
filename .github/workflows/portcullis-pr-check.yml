@@ -51,7 +51,7 @@ jobs:
       # new) while restore-keys falls back to the most recent entry for this PR —
       # i.e. "whatever the last push scored" — which is what the diff needs.
       - name: Restore previous scan result
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: portcullis-last-scan.json
           key: portcullis-scan-pr-${{ github.event.pull_request.number }}-${{ github.sha }}
@@ -126,7 +126,7 @@ jobs:
 
       - name: Cache scan result
         if: always()
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: portcullis-last-scan.json
           key: portcullis-scan-pr-${{ github.event.pull_request.number }}-${{ github.sha }}
