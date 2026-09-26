@@ -83,6 +83,10 @@ public static class Scanner
         CancellationToken cancellationToken = default)
     {
         var fullPath = Path.GetFullPath(path);
+
+        // scanStartedUtc is when the scan started (docs/SPEC.md section 3), so it is read here,
+        // beside the stopwatch, and not when the result is built, which is after the scan.
+        var scanStartedUtc = DateTime.UtcNow;
         var stopwatch = Stopwatch.StartNew();
 
         var csFiles = Directory.Exists(fullPath)
@@ -177,7 +181,7 @@ public static class Scanner
             SchemaVersion,
             EngineVersion,
             fullPath,
-            DateTime.UtcNow,
+            scanStartedUtc,
             stopwatch.Elapsed.TotalMilliseconds,
             csFiles.Count,
             rules.Length,

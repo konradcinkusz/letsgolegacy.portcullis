@@ -114,6 +114,9 @@ happened is not written as though it had.
 - **Two sentences left over from the rename**: the no-convention diagnostic suggested
   declaring conventions "in an portcullis.json", and the comment tool's package description
   began "Renders an Portcullis scan result".
+- **`scanStartedUtc` is when the scan started.** It was read when the result was built,
+  after the scan had finished, although [`docs/SPEC.md`](docs/SPEC.md) §3 defines it as the
+  start; `scanStartedUtc` plus `scanDurationMs` now ends when the scan did.
 
 ### Known limitations
 
