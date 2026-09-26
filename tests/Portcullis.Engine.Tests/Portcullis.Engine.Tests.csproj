@@ -28,6 +28,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Portcullis.Engine\Portcullis.Engine.csproj" />
+    <!--
+      Direct, although Portcullis.Engine already brings it in: these tests exercise the
+      rules themselves, and Stryker.NET mutates only a project the test project references
+      directly (docs/MUTATIONS.md, section 8).
+    -->
+    <ProjectReference Include="..\..\src\Portcullis.Rules\Portcullis.Rules.csproj" />
   </ItemGroup>
 
 </Project>

@@ -27,12 +27,18 @@ no separate tool to install.
 | `PORTCULLIS_P15_MISSING_SERVICE_DEFAULTS` | warning | A service entry point that builds a host but never wires shared observability |
 | `PORTCULLIS_CONVENTION_UNMATCHED` | warning | A convention you configured matches no path — likely a typo or a renamed folder |
 | `PORTCULLIS_NO_CONVENTION_MATCHED` | warning | Nothing was configured and no convention matched, so the convention-driven rules checked nothing |
+| `PORTCULLIS_MIG_SYSTEM_WEB` | warning | Any use of a System.Web namespace or type in code meant for modern .NET |
+| `PORTCULLIS_MIG_HTTPCONTEXT_CURRENT` | error | Request state read through the static `System.Web.HttpContext.Current` |
+| `PORTCULLIS_MIG_SYNC_OVER_ASYNC` | warning | Blocking on a task: `.Result`, `.Wait()`, `.GetAwaiter().GetResult()` |
+| `PORTCULLIS_MIG_CONFIGURATION_MANAGER` | error | Settings read through `ConfigurationManager` instead of `IOptions<T>`/`IConfiguration` |
 
 The rules implement principles P2, P4, P9, P10, P11 and P15 of
 [`architecture-standards`](https://github.com/konradcinkusz/architecture-standards) — a
 written architecture constitution for .NET services. You do not need to adopt that
 standard to use these analyzers, but the principles are where each rule's reasoning is
-written down.
+written down. The four `PORTCULLIS_MIG_*` rules look for .NET Framework idioms left behind
+by a migration to modern .NET; they decide on symbols, not text, and are documented in
+[`docs/rules/MIGRATION.md`](https://github.com/konradcinkusz/letsgolegacy.portcullis/blob/main/docs/rules/MIGRATION.md).
 
 ## Telling the rules where to look
 
@@ -51,6 +57,10 @@ portcullis_adapter_folders = External, Gateways
 portcullis_vendor_namespaces = Stripe, Google.Cloud, Acme.Payments
 portcullis_entry_point_file_names = Program.cs, Startup.cs
 portcullis_kernel_line_ceiling = 500
+
+# the migration rules: where they stay silent, and which System.Web types are modern .NET
+portcullis_migration_exempt_folders = Legacy
+portcullis_system_web_allowed_types = System.Web.HttpUtility, System.Web.IHtmlString
 ```
 
 Each key is optional and falls back to its default independently. Setting one **replaces**

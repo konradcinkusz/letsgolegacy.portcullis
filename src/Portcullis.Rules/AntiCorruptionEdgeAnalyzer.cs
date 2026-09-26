@@ -11,9 +11,9 @@ namespace Portcullis.Rules;
 /// syntactic (a <c>using</c> directive's root namespace against a curated vendor list),
 /// like <see cref="KernelBoundaryAnalyzer"/>'s folder-segment convention for "kernel"/
 /// "entity" — same reason: nothing in the target source declares an "adapter" role
-/// explicitly, and the vendor SDK assembly itself is never referenced by this milestone's
-/// corelib-only compilation (docs/BOOTSTRAP.md's scope note), so there is no symbol to
-/// bind against, only the import statement itself.
+/// explicitly, and the vendor SDK assembly itself is never referenced by the scanner's
+/// single compilation, which takes no NuGet packages (docs/BOOTSTRAP.md's scope note), so
+/// there is no symbol to bind against, only the import statement itself.
 ///
 /// <see cref="VendorNamespaceRoots"/> is a deliberately small, explicit starting list, not
 /// a general "flag every third-party package" rule — that would drown in false positives

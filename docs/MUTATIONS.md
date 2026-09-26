@@ -352,3 +352,131 @@ a real gap even when grounded in a real example — it took an actual scan, not 
 reasoning about the design, to surface it), and it does not extend any claim to the 9
 principles this pass leaves untouched (5 Deferred, 4 Out of scope per `docs/SPEC.md`
 section 5's own tally).
+
+## 8. Migration rules: hand-written mutants and a Stryker.NET score
+
+Date: 2026-09-26, ticket R2 ([`WORKPLAN.md`](WORKPLAN.md)). The four migration rules
+([`rules/MIGRATION.md`](rules/MIGRATION.md)) went through the same pass as sections 2–7 —
+and, for the first time in this repository, through Stryker.NET as well, which mutates the
+rules' source mechanically instead of by hand and so finds the gaps nobody thought to write a
+mutant for. Both are recorded here, including what the first Stryker run found.
+
+### 8.1 Hand-written mutants
+
+Same method as section 2: the real rule catches the fixture, then a variant under
+`tests/Portcullis.Engine.Tests/Rules/Mutants/` that breaks one mechanism and reuses the real
+`DiagnosticDescriptor` must not. One variant is inverted, like the convention-coverage one:
+for a rule whose whole point is being semantic, the failure that matters is a text match
+that fires on the wrong type.
+
+| Variant | Breaks | Test | Result |
+|---|---|---|---|
+| `SystemWebNestedNamespacesMutant` | The namespace test becomes "is System.Web" instead of "is System.Web or nested in it", so `System.Web.SessionState` and every other nested namespace stop counting | `MutationTests.SystemWeb_RealCatchesButMutantMisses` — `using System.Web.SessionState;` plus an `HttpSessionState` parameter: real reports 2, mutant 0 | **Caught.** |
+| `SystemWebShortNameMutant` | Matches a name by spelling (`HttpContext`, `HttpRequest`, …) instead of by the symbol it binds to | `MutationTests.SystemWebByShortName_RealStaysSilentButMutantFires` — ASP.NET Core's own `HttpContext`: real silent, mutant fires | **Caught.** |
+| `HttpContextCurrentOwnerMutant` | Looks for the static `Current` on `System.Web.HttpContextBase`, which does not declare it, instead of `System.Web.HttpContext` | `MutationTests.HttpContextCurrent_RealCatchesButMutantMisses` | **Caught.** |
+| `SyncOverAsyncGenericAwaitersDroppedMutant` | The awaiter list loses its four generic entries (`TaskAwaiter`1` and siblings), so `GetAwaiter().GetResult()` on a `Task<T>` — how blocking code actually gets a value out — goes unreported | `MutationTests.SyncOverAsync_RealCatchesButMutantMisses` | **Caught.** |
+| `ConfigurationManagerPropertiesOnlyMutant` | Registers for property references only — `AppSettings` and `ConnectionStrings` are properties — and forgets that `GetSection` is a method | `MutationTests.ConfigurationManager_RealCatchesButMutantMisses` | **Caught.** |
+
+```
+$ dotnet test tests/Portcullis.Engine.Tests -c Release --filter "FullyQualifiedName~MutationTests"
+  Passed ….MutationTests.SystemWeb_RealCatchesButMutantMisses
+  Passed ….MutationTests.SystemWebByShortName_RealStaysSilentButMutantFires
+  Passed ….MutationTests.HttpContextCurrent_RealCatchesButMutantMisses
+  Passed ….MutationTests.SyncOverAsync_RealCatchesButMutantMisses
+  Passed ….MutationTests.ConfigurationManager_RealCatchesButMutantMisses
+  … (and the ten from sections 3 and 7)
+Total tests: 15
+     Passed: 15
+```
+
+The mutants call the rules' internal symbol helpers (`MigrationSymbols`, visible to the
+test assembly through `InternalsVisibleTo`), so each differs from its rule by the one
+mechanism it breaks rather than by a reimplementation. The sync-over-async mutant
+reproduces only the invocation path and leaves out the rule's two "known complete"
+exclusions; those can only suppress a report, so leaving them out cannot be why it misses.
+
+### 8.2 Stryker.NET
+
+Stryker.NET is pinned as a local tool (`.config/dotnet-tools.json`, `dotnet-stryker`
+5.0.0) and scoped by `tests/Portcullis.Engine.Tests/stryker-config.json` to the five files
+of the migration rules: `MigrationSymbols.cs` and the four analyzers. Mutation level
+`Standard`; the whole `Portcullis.Engine.Tests` suite is the test set.
+
+```sh
+dotnet tool restore
+cd tests/Portcullis.Engine.Tests
+dotnet stryker            # HTML and JSON reports under StrykerOutput/<timestamp>/reports/
+```
+
+Final run (Stryker's own summary line: *The final mutation score is 100.00 %*):
+
+| File | Killed | Timeout | Survived | No coverage | Compile error | Ignored |
+|---|---|---|---|---|---|---|
+| `MigrationSymbols.cs` | 12 | 0 | 0 | 0 | 3 | 5 |
+| `SystemWebUsageAnalyzer.cs` | 73 | 2 | 0 | 0 | 1 | 24 |
+| `HttpContextCurrentAnalyzer.cs` | 16 | 0 | 0 | 0 | 0 | 5 |
+| `SyncOverAsyncAnalyzer.cs` | 95 | 0 | 0 | 0 | 5 | 23 |
+| `ConfigurationManagerAnalyzer.cs` | 16 | 0 | 0 | 0 | 0 | 5 |
+| **Total** | **212** | **2** | **0** | **0** | 9 | 62 |
+
+**Mutation score: 100.00 % — 214 of 214 tested mutants detected** (212 killed, 2 timed out,
+which Stryker counts as detected: both turn a loop into one that never ends).
+
+Not in the score, and why:
+
+- **9 compile errors** — mutations that are not valid C# (`string - string`, `"a" and "b"`
+  as a pattern). Stryker discards them itself.
+- **4 ignored by `ignore-methods: EnableConcurrentExecution`** — removing that call cannot
+  be observed by any test (it only lets Roslyn run the analyzer on several threads), so
+  each such mutant is equivalent by construction. It is the only exclusion configured.
+- **58 ignored by Stryker's "block already covered" filter** — block-removal mutants it
+  drops when statement mutants in the same block are already being tested.
+
+**What the earlier runs found, and what changed because of it.** The first run scored
+**82.80 %**, the second **97.70 %** (five survivors); the numbers were the smaller problem:
+
+- Stryker's *safe mode* had dropped every mutation in two methods of the sync-over-async
+  rule, because negating a condition with a pattern variable in it (`x is T t && …`) leaves
+  `t` unassigned and fails that mutant's build. Those methods were not being tested at all,
+  and the score did not say so. The rules now use plain casts and null checks
+  (`MigrationSymbols`'s doc comment records why), and every method is mutated.
+- The diagnostic ids, titles and messages survived as string mutants: descriptors are
+  static fields, initialised once per test process, so a mutation of them is never live
+  while a test runs. They are constants now — Stryker cannot mutate a constant, and a
+  descriptor is data rather than logic — and each rule has a test that pins its full
+  message, while `RuleRegistryTests` pins the ids.
+- Several survivors were **dead code** — branches whose removal no test could observe,
+  because no real API can make them differ: the implicit-conversion step in the
+  completion-guard conjunction check, the loop over a nested type's containers in
+  `MigrationSymbols` (Roslyn already answers a nested type's namespace with its outermost
+  container's), the global-namespace branch of the metadata-name builder, and a
+  `ContinueWith` name check already implied by the declaring type. They were removed or
+  restructured rather than kept alive by contrived tests, and three branches of the same
+  kind in the two methods safe mode had hidden (unwrapping implicit conversions around a
+  receiver, a lambda-kind check, a parameter-ordinal check) went with them, on the same
+  reasoning.
+- The rest were **real test gaps**, closed with tests in both directions: generated code;
+  a namespace that only starts with the same characters (`System.WebHooks`); a using
+  directive that binds to nothing; aliases and `using static` of non-System.Web types; an
+  instance member called `Current`; `ConfigureAwait` on the fast path and inside a
+  continuation; a completion guard on the same member of *another* object; a pipeline's
+  own `ContinueWith`; and the exact message shape of properties versus methods. The test
+  helper now also fails any test during which an analyzer threw (Roslyn reports that as an
+  `AD0001` diagnostic rather than failing, so a crashed rule used to look like a silent one).
+
+**In CI**, `.github/workflows/mutation.yml` runs the same command on every pull request
+and push to `main` that touches the rules, their tests or the tool manifest, and uploads
+the report as an artifact. `stryker-config.json` sets `thresholds.break` to 95: below it,
+the job fails. A run takes about six minutes on a four-core machine, which is why it is a
+workflow of its own rather than a step in `ci.yml`.
+
+### 8.3 What this does and does not prove
+
+It proves that every branch of the four rules' decision logic is pinned by a test that
+fails when that branch changes, and that the hand-written mutants for each rule's central
+mechanism are caught. It does not prove the rules are free of false positives on real
+migrated code — every fixture here is synthetic, and running them on a real migrated
+candidate is the nopCommerce bench's ticket (P8), not this one. It does not cover the
+engine side of the CLI channel (`src/Portcullis.Engine/Semantics/`, the framework
+references and the declared legacy surface): that code is exercised by
+`ScannerMigrationTests` end to end, but it is not in Stryker's scope.

@@ -24,8 +24,8 @@
   <PropertyGroup>
     <PackageId>Portcullis.Analyzers</PackageId>
     <Title>Portcullis architecture rules (Roslyn analyzers)</Title>
-    <Description>Roslyn analyzers that fail the build when C# code violates your team's declared architecture — layering, shared-kernel boundaries, persistence portability, vendor-SDK containment, observability wiring. Add the package and violations become ordinary compiler warnings and errors, in any IDE and any CI.</Description>
-    <PackageTags>roslyn;analyzers;architecture;static-analysis;portcullis;aspire;ci</PackageTags>
+    <Description>Roslyn analyzers that fail the build when C# code violates your team's declared architecture — layering, shared-kernel boundaries, persistence portability, vendor-SDK containment, observability wiring — or carries .NET Framework idioms (System.Web, HttpContext.Current, sync over async, ConfigurationManager) into modern .NET. Add the package and violations become ordinary compiler warnings and errors, in any IDE and any CI.</Description>
+    <PackageTags>roslyn;analyzers;architecture;static-analysis;portcullis;aspire;ci;migration;system-web</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/konradcinkusz/letsgolegacy.portcullis</PackageProjectUrl>

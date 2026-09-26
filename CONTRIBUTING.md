@@ -70,9 +70,15 @@ reason you think*:
    `tests/.../Rules/Mutants/` and a `MutationTests` case asserting the real rule catches
    the violation *and* the mutant misses it. A rule with no mutant is a rule nobody has
    tested. Break the specific mechanism the rule depends on, not something incidental.
+   For the migration rules, also run Stryker.NET (`dotnet tool restore`, then
+   `dotnet stryker` in `tests/Portcullis.Engine.Tests`) and add a new rule's file to the
+   `mutate` list in `stryker-config.json`; CI fails below the configured threshold.
+   [`docs/MUTATIONS.md` §8](docs/MUTATIONS.md) explains why the rules avoid pattern
+   variables in conditions.
 5. **Run it against real code**, not only fixtures, and record what happened —
    including anything it flagged that it should not have.
-6. **Document it** in `docs/MUTATIONS.md` and the README's rule table.
+6. **Document it** in `docs/MUTATIONS.md` and the README's rule table (and, for a
+   migration rule, in `docs/rules/MIGRATION.md`).
 
 Prefer a small rule with high confidence over a broad one that needs tuning. A noisy
 gate loses the team's trust faster than a narrow one earns it.

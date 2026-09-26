@@ -1,0 +1,61 @@
+name: Mutation
+
+# Stryker.NET over the four migration rules (docs/MUTATIONS.md section 8): every mutant of
+# their source must be caught by the tests, or the run fails below the `break` threshold in
+# tests/Portcullis.Engine.Tests/stryker-config.json.
+#
+# Kept out of ci.yml because it takes minutes rather than seconds, and path-filtered so a
+# documentation-only change does not pay for it. `pull_request` carries no branch filter:
+# pull requests here are stacked, so most of them target another feature branch.
+on:
+  pull_request:
+    paths:
+      - "src/Portcullis.Rules/**"
+      - "tests/Portcullis.Engine.Tests/**"
+      - ".config/dotnet-tools.json"
+      - ".github/workflows/mutation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/Portcullis.Rules/**"
+      - "tests/Portcullis.Engine.Tests/**"
+      - ".config/dotnet-tools.json"
+      - ".github/workflows/mutation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stryker:
+    name: Stryker (migration rules)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      # Stryker.NET is pinned as a local tool (.config/dotnet-tools.json), so CI and a
+      # developer's machine run the same version.
+      - name: Restore local tools
+        run: dotnet tool restore
+
+      - name: Run Stryker.NET
+        working-directory: tests/Portcullis.Engine.Tests
+        run: dotnet stryker
+
+      - name: Upload the mutation report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: mutation-report
+          path: tests/Portcullis.Engine.Tests/StrykerOutput/*/reports/
+          if-no-files-found: warn

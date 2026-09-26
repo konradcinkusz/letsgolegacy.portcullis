@@ -12,10 +12,9 @@ namespace Portcullis.Rules;
 /// <c>IsInMemory()</c> guard, and a <c>HasData(...)</c> seed call inside
 /// <c>OnModelCreating</c>.
 ///
-/// Both checks are purely syntactic — like every other rule in this milestone's
-/// single-compilation, corelib-only scanner (docs/BOOTSTRAP.md's scope note), the real EF
-/// Core <c>DatabaseFacade</c>/<c>ModelBuilder</c> types never resolve to a bound symbol
-/// here, so this rule matches on invocation shape (a member access named "Database"
+/// Both checks are purely syntactic — in the scanner's single compilation, which references
+/// no NuGet packages (docs/BOOTSTRAP.md's scope note), the real EF Core
+/// <c>DatabaseFacade</c>/<c>ModelBuilder</c> types never resolve to a bound symbol here, so this rule matches on invocation shape (a member access named "Database"
 /// followed by "EnsureCreated"/"EnsureCreatedAsync"; a method named "OnModelCreating"
 /// containing a "HasData" call) — the same name-matching technique
 /// <see cref="ProgramManifestLayeringAnalyzer"/> already uses for "DbContext"/"Controller".

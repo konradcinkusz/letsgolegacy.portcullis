@@ -23,6 +23,8 @@ public class PortcullisConfigFileTests
         Assert.Equal(defaults.VendorNamespaces.ToArray(), conventions.VendorNamespaces.ToArray());
         Assert.Equal(defaults.EntryPointFileNames.ToArray(), conventions.EntryPointFileNames.ToArray());
         Assert.Equal(defaults.KernelLineCeiling, conventions.KernelLineCeiling);
+        Assert.Equal(defaults.MigrationExemptFolders.ToArray(), conventions.MigrationExemptFolders.ToArray());
+        Assert.Equal(defaults.SystemWebAllowedTypes.ToArray(), conventions.SystemWebAllowedTypes.ToArray());
         Assert.Empty(conventions.ExplicitlyConfiguredKeys);
     }
 
@@ -66,7 +68,9 @@ public class PortcullisConfigFileTests
                   "adapterFolders": ["External"],
                   "vendorNamespaces": ["Acme"],
                   "entryPointFileNames": ["Startup.cs"],
-                  "kernelLineCeiling": 400
+                  "kernelLineCeiling": 400,
+                  "migrationExemptFolders": ["Legacy", "Compat"],
+                  "systemWebAllowedTypes": ["System.Web.HttpUtility"]
                 }
                 """);
 
@@ -79,11 +83,15 @@ public class PortcullisConfigFileTests
             Assert.Equal("Acme", config.Values[PortcullisConventionKeys.VendorNamespaces]);
             Assert.Equal("Startup.cs", config.Values[PortcullisConventionKeys.EntryPointFileNames]);
             Assert.Equal("400", config.Values[PortcullisConventionKeys.KernelLineCeiling]);
+            Assert.Equal("Legacy,Compat", config.Values[PortcullisConventionKeys.MigrationExemptFolders]);
+            Assert.Equal("System.Web.HttpUtility", config.Values[PortcullisConventionKeys.SystemWebAllowedTypes]);
 
             var conventions = PortcullisConventions.From(config.ToAnalyzerOptions());
             Assert.Equal(["Common", "Shared"], conventions.KernelFolders.ToArray());
             Assert.Equal(["Startup.cs"], conventions.EntryPointFileNames.ToArray());
             Assert.Equal(400, conventions.KernelLineCeiling);
+            Assert.Equal(["Legacy", "Compat"], conventions.MigrationExemptFolders.ToArray());
+            Assert.Equal(["System.Web.HttpUtility"], conventions.SystemWebAllowedTypes.ToArray());
         }
         finally
         {

@@ -90,6 +90,15 @@ and which are new, invented by portcullis because nothing upstream exists to inh
 A rule that cannot honestly be given a `principleIds` entry (nothing in P1–P15 fits) is
 not forced into one — see section 5.
 
+**Addendum (ticket R2, 2026-09-26) — rules outside P1–P15.** Two categories carry no
+principle id, by design. `Meta` is the convention-coverage pair, which reports on the gate
+itself. `Migration` is the four rules that look for .NET Framework idioms surviving a
+migration to modern .NET; their ids take the form `PORTCULLIS_MIG_<SLUG>`
+(`PORTCULLIS_MIG_SYSTEM_WEB`, `PORTCULLIS_MIG_HTTPCONTEXT_CURRENT`,
+`PORTCULLIS_MIG_SYNC_OVER_ASYNC`, `PORTCULLIS_MIG_CONFIGURATION_MANAGER`) and are pinned
+verbatim because the Second Key standards pack cites them. Their reasoning lives in
+`docs/rules/MIGRATION.md` rather than in architecture-standards.
+
 ---
 
 ## 2. The violation record schema
@@ -181,6 +190,13 @@ This milestone parses target source directly (`CSharpSyntaxTree.ParseText` over 
 single-compilation semantic analysis work; anything requiring real project/assembly
 references (resolving a type from a referenced NuGet package or another project) does
 not, yet. Recorded in `docs/BOOTSTRAP.md`, not hidden here.
+
+**Addendum (ticket R2, 2026-09-26).** The compilation no longer references
+`System.Private.CoreLib` alone: it references the framework assemblies of the .NET
+runtime the scan runs on, plus declarations of the .NET Framework APIs the migration rules
+detect (`src/Portcullis.Engine/Semantics/`). NuGet packages and other projects are still
+out of reach. The output schema is unchanged; `rulesEvaluated` counts the migration rules
+like any other.
 
 ---
 
