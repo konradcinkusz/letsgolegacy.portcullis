@@ -95,6 +95,12 @@ gate loses the team's trust faster than a narrow one earns it.
 - CI (`.github/workflows/ci.yml`) builds, runs the full suite, and fails if the
   project's former name reappears anywhere in the tree (job *Former name absent*). The
   name is Portcullis everywhere — code, docs, and notes about the past alike.
+- Portcullis gates its own pull requests (`portcullis-pr-check.yml`) and publishes their
+  findings as SARIF (`portcullis-sarif.yml`), both against the committed
+  `portcullis-baseline.json`. A new error on a line you changed blocks. Fix it rather than
+  growing the baseline; if accepting it really is the right call, regenerate the file with
+  `dotnet run --project src/Portcullis.Cli -- scan src --baseline portcullis-baseline.json
+  --write-baseline` and say why in the pull request, where the reviewer sees the entry.
 
 ## Releasing
 

@@ -22,7 +22,7 @@
     <ToolCommandName>portcullis-ci-comment</ToolCommandName>
     <PackageId>Portcullis.CiComment</PackageId>
     <Title>Portcullis CI comment publisher</Title>
-    <Description>Renders an Portcullis scan result as a Markdown pull-request comment, updates one sticky comment in place instead of posting a new one per push, and exits non-zero when the merge gate blocks.</Description>
+    <Description>Renders a Portcullis scan result as a Markdown pull-request comment, updates one sticky comment in place instead of posting a new one per push, and exits non-zero when the merge gate blocks.</Description>
     <PackageTags>portcullis;architecture;ci;github-actions;dotnet-tool</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

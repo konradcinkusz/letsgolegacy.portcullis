@@ -23,6 +23,10 @@ teams. This CLI exists for the things a compiler diagnostic cannot do:
 - **An AI-provenance signal.** Violations on lines attributable to an AI coding agent
   (read from real git history — commit trailers and authorship, never code style) get a
   stricter severity threshold than the same violation written by a human.
+- **SARIF 2.1.0 and a baseline file.** The findings a change introduces — on its changed
+  lines, less those a committed baseline accepts as pre-existing — as SARIF for GitHub code
+  scanning or any other SARIF consumer
+  ([`docs/SARIF.md`](https://github.com/konradcinkusz/letsgolegacy.portcullis/blob/main/docs/SARIF.md)).
 
 ## Usage
 
@@ -34,6 +38,16 @@ portcullis scan ./src
 portcullis scan ./src \
   --provenance-range "$BASE_SHA..$HEAD_SHA" \
   --provenance-repo .
+
+# accept every current finding as pre-existing, once, and commit the file
+portcullis scan ./src --baseline portcullis-baseline.json --write-baseline
+
+# from then on: only new findings block, and the SARIF holds only what the change introduced
+portcullis scan ./src \
+  --provenance-range "$BASE_SHA..$HEAD_SHA" \
+  --provenance-repo . \
+  --baseline portcullis-baseline.json \
+  --sarif portcullis.sarif
 ```
 
 Exit codes: `0` not blocked, `1` blocked, `2` bad usage.

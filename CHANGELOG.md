@@ -50,6 +50,16 @@ happened is not written as though it had.
   hand-written mutants and a Stryker.NET score of 100 % (214 of 214 mutants detected),
   enforced in CI. See [`docs/rules/MIGRATION.md`](docs/rules/MIGRATION.md) and
   [`docs/MUTATIONS.md`](docs/MUTATIONS.md) §8.
+- **SARIF 2.1.0 output with a changed-lines filter and a baseline file** (ticket R3).
+  `portcullis scan --sarif <file>` writes the findings that count against the change — on
+  the changed lines of `--provenance-range`, less those a baseline accepts — with rule id
+  and index, level, message, a location relative to the repository root with its start
+  line, and a partial fingerprint; the test suite validates it against the official OASIS
+  schema. `--baseline <file>` accepts the findings a team recorded as pre-existing: still
+  reported, never blocking; `--write-baseline` records them. A workflow runs this on the
+  repository's own pull requests, keeps the SARIF as a build artifact and uploads it to
+  GitHub code scanning, and the pull-request gate uses the same committed baseline. See
+  [`docs/SARIF.md`](docs/SARIF.md).
 
 ### Changed
 
@@ -77,6 +87,15 @@ happened is not written as though it had.
   declarations of the .NET Framework APIs the migration rules look for, instead of
   `System.Private.CoreLib` alone, so a semantic rule binds the same symbols in a scan as in
   a real build. No existing rule's output changed (the full suite passed unmodified).
+- **The scan result carries fingerprints and the baseline** (ticket R3, additive): each
+  violation gains `fingerprint` and `baselined`, the result a `baseline` object, and the
+  gate `acceptedByBaselineCount`. Without `--baseline` every verdict is what it was. The
+  pull-request comment marks accepted findings and says when a baseline, rather than the
+  diff scope, is why an error did not block; it still compares two scans on the five
+  original violation fields, so a cached scan from before fingerprints diffs cleanly.
+- **One range check for the diff scope.** Whether a violation is on a changed line is
+  decided by `ChangedLines`, shared by the gate, severity escalation and the SARIF filter,
+  instead of private helpers in the scanner.
 
 ### Fixed
 
@@ -89,6 +108,12 @@ happened is not written as though it had.
   analyzer package could be configured and the CLI could not, from the same rules.
 - **The pull-request comment path no longer crashes** on malformed or partial scan
   output.
+- **Two findings on one line come out in the same order on every run.** Violations were
+  sorted by file and line only, and analyzers run concurrently, so the order of findings
+  sharing a line — and with it the JSON — could differ between two scans of the same tree.
+- **Two sentences left over from the rename**: the no-convention diagnostic suggested
+  declaring conventions "in an portcullis.json", and the comment tool's package description
+  began "Renders an Portcullis scan result".
 
 ### Known limitations
 

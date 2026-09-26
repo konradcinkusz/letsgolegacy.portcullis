@@ -66,4 +66,22 @@ public class ViolationDiffTests
         Assert.Empty(diff.Unchanged);
     }
 
+    [Fact]
+    public void Compute_IgnoresFingerprintAndBaselinedWhenMatchingViolations()
+    {
+        // The previous push's scan may come from an engine that predates fingerprints, and a
+        // baseline can be rewritten between pushes; neither is a change in the code.
+        IReadOnlyList<Violation> before = [KernelCeiling, ControllerDbContext];
+        IReadOnlyList<Violation> after =
+        [
+            KernelCeiling with { Fingerprint = "f1" },
+            ControllerDbContext with { Fingerprint = "f2", Baselined = true },
+        ];
+
+        var diff = ViolationDiff.Compute(after, before);
+
+        Assert.Empty(diff.New);
+        Assert.Empty(diff.Resolved);
+        Assert.Equal(2, diff.Unchanged.Count);
+    }
 }

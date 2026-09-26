@@ -591,7 +591,7 @@ docker run --rm -v "$PWD:/workspace" ghcr.io/konradcinkusz/letsgolegacy.portcull
       pull request, including one-line changes touching nothing related. Developers can't
       merge, so within a week somebody switches the gate off, and it never comes back on.</p>
 
-      <p>Portcullis has two independent answers. Use both.</p>
+      <p>Portcullis has three independent answers, and they compose.</p>
 
       <h3>4.1 &nbsp;Diff scoping — on by default in the Action</h3>
       <p>Given a commit range, Portcullis still <strong>reports</strong> every violation it
@@ -645,6 +645,19 @@ dotnet_diagnostic.PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT.severity = none</code></
         raise that rule to <code>warning</code>, then <code>error</code> → repeat. Each
         ratchet is one line, and no step ever blocks work unrelated to it.</p>
       </div>
+
+      <h3>4.3 &nbsp;A baseline file</h3>
+      <p>Record the findings that exist today, once, and commit the file:</p>
+
+<pre><code>portcullis scan ./src --baseline portcullis-baseline.json --write-baseline</code></pre>
+
+      <p>From then on, pass <code>--baseline portcullis-baseline.json</code> to every scan. A
+      finding the file accepts is still <strong>reported</strong> — marked <em>(accepted by
+      the baseline)</em> in the PR comment — but it never <strong>blocks</strong>, even on a
+      line the pull request touched. Findings are matched by a fingerprint of rule, file and
+      line text, not by line number, so edits elsewhere and re-indentation leave accepted
+      debt accepted; rewriting the line makes it new again. Details, and SARIF output for
+      code scanning, in <a href="https://github.com/konradcinkusz/letsgolegacy.portcullis/blob/main/docs/SARIF.md">SARIF.md</a>.</p>
     </section>
 
     <section id="output">

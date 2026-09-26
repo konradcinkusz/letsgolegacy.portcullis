@@ -115,6 +115,11 @@ blocks.
 | `fail-on-block` | `true` | Set `false` to report without enforcing |
 | `dotnet-version` | `10.0.x` | Set `''` to use whatever the runner already has |
 
+**Code scanning.** The Action does not take `--sarif` or `--baseline` yet. To publish SARIF
+to GitHub code scanning today, run the CLI and `github/codeql-action/upload-sarif` in your
+own workflow, as this repository does for its own pull requests — the workflow is in
+[`SARIF.md` §5](SARIF.md).
+
 **Outputs** — `blocked`, `error-count`, `blocking-error-count`, `result-path` — so a
 later step can react:
 
@@ -195,7 +200,7 @@ the point of it. But a gate that fails on all of them fails *every* pull request
 including one-line changes touching nothing related. Developers cannot merge, so within a
 week somebody switches the gate off, and it never comes back on.
 
-Portcullis has two independent answers. Use both.
+Portcullis has three independent answers, and they compose.
 
 ### 4.1 Diff scoping (on by default in the Action)
 
@@ -251,6 +256,28 @@ Verified working, not assumed: promoting `PORTCULLIS_P9_ORPHAN_ENTITY` from its 
 raise that rule to `warning`, then `error` → repeat. Each ratchet is one line, and no
 step ever blocks work that is unrelated to it.
 
+### 4.3 A baseline file
+
+Record the findings that exist today, once, and commit the file:
+
+```sh
+portcullis scan ./src --baseline portcullis-baseline.json --write-baseline
+```
+
+From then on, pass `--baseline portcullis-baseline.json` to every scan. A finding the file
+accepts is still **reported** — marked *(accepted by the baseline)* in the PR comment and
+`baselined: true` in the JSON — but it never **blocks**, even on a line the pull request
+touched. Findings are matched by a fingerprint of rule, file and line text rather than by
+line number, so edits elsewhere in a file, or re-indenting the line itself, do not turn
+accepted debt back into "new"; rewriting the line does, which is when it deserves a second
+look anyway.
+
+Diff scoping already keeps untouched debt from blocking; the baseline adds the cases it
+cannot cover — reformatting inside a diff, and whole-tree gates such as a scheduled audit or
+the fallback when git cannot resolve the range. The file lists the rule, file and message
+beside each fingerprint, so a pull request that grows it shows its reviewer exactly what is
+being accepted. Details, including what changes a fingerprint: [`SARIF.md` §3](SARIF.md).
+
 ---
 
 ## 5. Reading the output
@@ -272,6 +299,13 @@ step ever blocks work that is unrelated to it.
 
 `summary` is what was **found**. `gate` is what **blocks** — they are deliberately
 different numbers, and the gap between them is your pre-existing debt.
+
+Each violation also carries a `fingerprint` (its identity across commits) and `baselined`
+(true when the scan's baseline accepted it). With `--baseline`, the result also has a
+`baseline` object — the file's `entryCount`, and the `acceptedCount` of this scan's
+findings — and `gate.acceptedByBaselineCount` counts the errors it kept from blocking.
+`--sarif <file>` writes the findings that count against the change as SARIF 2.1.0 — see
+[`SARIF.md`](SARIF.md).
 
 **Exit codes:** `0` not blocked · `1` blocked · `2` bad usage. Only `2` means Portcullis
 itself failed; `1` is a verdict, not an error.

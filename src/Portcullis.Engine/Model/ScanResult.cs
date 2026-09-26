@@ -21,7 +21,22 @@ public sealed record ScanResult(
     IReadOnlyList<Violation> Violations,
     ScanSummary Summary,
     GateResult? Gate = null,
-    ScanConfiguration? Configuration = null);
+    ScanConfiguration? Configuration = null,
+    ScanBaseline? Baseline = null);
+
+/// <summary>
+/// The baseline a scan was judged against, if any — additive and defaulted for the same
+/// reason <c>Gate</c> is. Null when the scan was given no baseline.
+///
+/// <c>EntryCount</c> minus <c>AcceptedCount</c> is how many baseline entries matched nothing
+/// this time: debt that was paid off, or code that changed enough to change its fingerprint.
+/// Neither blocks anything, but a baseline that only ever goes stale says less every month,
+/// so the numbers are reported rather than left to be inferred. See docs/SARIF.md.
+/// </summary>
+/// <param name="Path">The baseline file as the caller named it; null for a baseline built in memory.</param>
+/// <param name="EntryCount">How many findings the baseline accepts.</param>
+/// <param name="AcceptedCount">How many of this scan's violations it accepted.</param>
+public sealed record ScanBaseline(string? Path, int EntryCount, int AcceptedCount);
 
 /// <summary>
 /// Which configuration file the scan actually used, if any — additive and defaulted for
@@ -65,8 +80,15 @@ public sealed record ScanSummary(int ErrorCount, int WarningCount, int InfoCount
 /// Trailing and defaulted, so it adds one JSON key and breaks no existing construction or
 /// fixture — see this file's own note on <c>Gate</c> for the same reasoning.
 /// </param>
+/// <param name="AcceptedByBaselineCount">
+/// Error-severity violations inside the gate's scope that the scan's baseline accepted, and
+/// that <paramref name="BlockingErrorCount"/> therefore leaves out: the two together are every
+/// error in scope. Always 0 without a baseline. Trailing and defaulted, like
+/// <paramref name="DegradedReason"/>.
+/// </param>
 public sealed record GateResult(
     bool Blocked,
     string Scope,
     int BlockingErrorCount,
-    string? DegradedReason = null);
+    string? DegradedReason = null,
+    int AcceptedByBaselineCount = 0);

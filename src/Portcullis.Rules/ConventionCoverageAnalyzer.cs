@@ -69,7 +69,7 @@ public sealed class ConventionCoverageAnalyzer : DiagnosticAnalyzer
         messageFormat:
             "No file matched any built-in portcullis convention ({0}), so the convention-driven " +
             "rules evaluated nothing and this scan can pass without having checked them. If " +
-            "this codebase uses different names, declare them in an {1} at the scan root.",
+            "this codebase uses different names, declare them in a {1} at the scan root.",
         category: "Meta",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

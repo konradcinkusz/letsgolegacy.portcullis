@@ -36,4 +36,14 @@
     <ProjectReference Include="..\..\src\Portcullis.Rules\Portcullis.Rules.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Validates Portcullis's SARIF output against the official schema (Sarif/SarifSchema.cs). -->
+    <PackageReference Include="JsonSchema.Net" Version="9.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The official OASIS SARIF 2.1.0 schema, copied unchanged: see Sarif/THIRD-PARTY-NOTICE.md. -->
+    <EmbeddedResource Include="Sarif\sarif-schema-2.1.0.json" LogicalName="sarif-schema-2.1.0.json" />
+  </ItemGroup>
+
 </Project>

@@ -20,15 +20,34 @@ namespace Portcullis.Cli;
 /// repository, it just was not used here. The one addition is an out error message:
 /// "unrecognised flag" and "flag is missing its value" are different mistakes and a
 /// consumer fixing a workflow deserves to be told which one they made.
+///
+/// <c>--sarif</c>, <c>--baseline</c> and <c>--write-baseline</c> were added with ticket R3
+/// (docs/SARIF.md) under the same strictness: a missing value or a <c>--write-baseline</c>
+/// with nowhere to write is an error, not a flag that quietly does nothing.
 /// </summary>
-public sealed record ScanCommandOptions(string Path, string? ProvenanceRange, string? ProvenanceRepo)
+public sealed record ScanCommandOptions(
+    string Path,
+    string? ProvenanceRange,
+    string? ProvenanceRepo,
+    string? SarifPath = null,
+    string? BaselinePath = null,
+    bool WriteBaseline = false)
 {
     public const string Usage =
         "usage: portcullis scan <path> [--provenance-range <commitOrRange>] [--provenance-repo <path>]\n" +
-        "  --provenance-range now also scopes the merge gate to that range's changed lines\n" +
-        "  (Gate.Scope \"diff\") instead of the whole scan (Gate.Scope \"all\", the default).\n" +
-        "  If git cannot resolve the range, the gate falls back to \"all\" and says why —\n" +
-        "  it does not silently pass.";
+        "                              [--sarif <file>] [--baseline <file> [--write-baseline]]\n" +
+        "  --provenance-range  scope the merge gate to that range's changed lines (Gate.Scope \"diff\")\n" +
+        "                      instead of the whole scan (Gate.Scope \"all\", the default). If git\n" +
+        "                      cannot resolve the range, the gate falls back to \"all\" and says why;\n" +
+        "                      it does not silently pass.\n" +
+        "  --provenance-repo   the git repository <path> is in (default: <path>). SARIF locations\n" +
+        "                      are written relative to it.\n" +
+        "  --sarif             also write, as SARIF 2.1.0, the findings that count against the change:\n" +
+        "                      those on the range's changed lines, less those the baseline accepts.\n" +
+        "  --baseline          findings whose fingerprints this file lists are still reported, but\n" +
+        "                      do not block and are left out of the SARIF.\n" +
+        "  --write-baseline    write every finding of this scan to the --baseline file instead of\n" +
+        "                      reading it. The run is judged against the new file, so it passes.";
 
     /// <summary>
     /// Parses argv, or returns null with <paramref name="error"/> describing the first
@@ -61,6 +80,9 @@ public sealed record ScanCommandOptions(string Path, string? ProvenanceRange, st
 
         string? provenanceRange = null;
         string? provenanceRepo = null;
+        string? sarifPath = null;
+        string? baselinePath = null;
+        var writeBaseline = false;
 
         for (var i = 2; i < args.Length; i++)
         {
@@ -72,8 +94,19 @@ public sealed record ScanCommandOptions(string Path, string? ProvenanceRange, st
                 case "--provenance-repo" when i + 1 < args.Length:
                     provenanceRepo = args[++i];
                     break;
+                case "--sarif" when i + 1 < args.Length:
+                    sarifPath = args[++i];
+                    break;
+                case "--baseline" when i + 1 < args.Length:
+                    baselinePath = args[++i];
+                    break;
+                case "--write-baseline":
+                    writeBaseline = true;
+                    break;
                 case "--provenance-range":
                 case "--provenance-repo":
+                case "--sarif":
+                case "--baseline":
                     error = $"'{args[i]}' is missing its value.";
                     return null;
                 default:
@@ -82,6 +115,14 @@ public sealed record ScanCommandOptions(string Path, string? ProvenanceRange, st
             }
         }
 
-        return new ScanCommandOptions(path, provenanceRange, provenanceRepo);
+        // Without a file to write to, --write-baseline could only be ignored — and a run that
+        // was meant to record a baseline would instead gate on every pre-existing finding.
+        if (writeBaseline && baselinePath is null)
+        {
+            error = "'--write-baseline' needs '--baseline <file>' to say which file to write.";
+            return null;
+        }
+
+        return new ScanCommandOptions(path, provenanceRange, provenanceRepo, sarifPath, baselinePath, writeBaseline);
     }
 }

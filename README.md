@@ -93,6 +93,19 @@ portcullis scan ./src                       # JSON to stdout; exit 1 when the ga
 docker run --rm -v "$PWD:/workspace" ghcr.io/konradcinkusz/letsgolegacy.portcullis:latest scan /workspace/src
 ```
 
+**Publish to code scanning, and block only on what is new** — accept the findings that
+exist today in a baseline file once, then scan each pull request's range:
+
+```sh
+portcullis scan ./src --baseline portcullis-baseline.json --write-baseline   # once; commit the file
+portcullis scan ./src --provenance-range "$BASE..$HEAD" --provenance-repo . \
+  --baseline portcullis-baseline.json --sarif portcullis.sarif
+```
+
+The SARIF 2.1.0 file holds only what the change introduced, ready for
+`github/codeql-action/upload-sarif`. [`docs/SARIF.md`](docs/SARIF.md) has the design and
+the workflow this repository runs on its own pull requests.
+
 **Adopting on a codebase that already has violations?** Read
 [`docs/TUTORIAL.md` §4](docs/TUTORIAL.md) first — a gate that fails every PR on
 pre-existing debt gets switched off within a week, and avoiding that is a setup
@@ -170,6 +183,7 @@ session-level-averaging failure it was built not to repeat.
 | [`docs/rules/MIGRATION.md`](docs/rules/MIGRATION.md) | The four migration rules: what each catches, why it matters when moving from .NET Framework to .NET 10, examples, and known gaps |
 | [`docs/SPEC.md`](docs/SPEC.md) | The frozen contracts: rule format, violation schema, output JSON, provenance interface, and a verdict on all 15 principles |
 | [`docs/DIFF-GATE.md`](docs/DIFF-GATE.md) | The diff-scoped merge gate |
+| [`docs/SARIF.md`](docs/SARIF.md) | SARIF 2.1.0 output, the changed-lines filter, and the baseline file that lets only new findings block |
 | [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md) | How each artifact ships and why — including why the GitHub Action is composite rather than a container |
 | [`docs/MUTATIONS.md`](docs/MUTATIONS.md) | The mutation pass: every rule deliberately broken to prove its tests would notice |
 | [`docs/FINDINGS.md`](docs/FINDINGS.md) | What the whole pipeline actually caught when attacked end to end, and what it did not |

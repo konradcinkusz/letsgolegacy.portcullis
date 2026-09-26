@@ -217,3 +217,21 @@ next time a PR is opened against this repository, since the workflow now dogfood
 fix); or change anything about which 6 rules exist or what they catch. Dogfooding the gate on
 `<consumer>`' own repair PRs was sequenced after this milestone specifically because an
 active gate there needed this fix to be workable at all.
+
+## 6. Since then: SARIF, the baseline, and one range check (ticket R3, 2026-09-26)
+
+Recorded here because it changes where §2's logic lives, not what it does.
+
+- **The range check is one class now.** The two private helpers that decided whether a
+  violation sat inside the diff moved, unchanged in behaviour, into
+  `Portcullis.Engine.Provenance.ChangedLines`. The gate, severity escalation and the new
+  SARIF changed-lines filter all ask it, so SARIF cannot disagree with the gate about which
+  findings belong to a pull request. It refuses to be built from a degraded provenance
+  report, which puts §3's fail-safe rule into the type rather than into each caller.
+- **The gate can be given a baseline.** Errors the baseline accepts are still reported but
+  no longer count toward `blockingErrorCount`, in either scope and in the degraded
+  fallback; `gate.acceptedByBaselineCount` says how many that was. Without a baseline every
+  number here is what it was.
+
+[`SARIF.md`](SARIF.md) has the design, the fingerprint the baseline is keyed on, and the
+verification.

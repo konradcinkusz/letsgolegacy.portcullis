@@ -43,7 +43,7 @@ public static class CommentFormatter
                 sb.AppendLine("**New:**");
                 foreach (var v in Sorted(diff.New))
                 {
-                    sb.AppendLine($"- {SeverityIcon(v.Severity)} {LocationOf(v)} — `{v.RuleId}`: {v.Message}");
+                    sb.AppendLine($"- {SeverityIcon(v.Severity)} {LocationOf(v)} — `{v.RuleId}`: {v.Message}{BaselineMark(v)}");
                 }
             }
 
@@ -75,8 +75,8 @@ public static class CommentFormatter
                 foreach (var v in group.OrderBy(v => v.Line))
                 {
                     sb.AppendLine(string.IsNullOrEmpty(group.Key)
-                        ? $"- {SeverityIcon(v.Severity)} `{v.RuleId}`: {v.Message}"
-                        : $"- {SeverityIcon(v.Severity)} **line {v.Line}** — `{v.RuleId}`: {v.Message}");
+                        ? $"- {SeverityIcon(v.Severity)} `{v.RuleId}`: {v.Message}{BaselineMark(v)}"
+                        : $"- {SeverityIcon(v.Severity)} **line {v.Line}** — `{v.RuleId}`: {v.Message}{BaselineMark(v)}");
                 }
             }
         }
@@ -129,6 +129,11 @@ public static class CommentFormatter
     // for visibility, so without this line a reader can't tell which ones are why the
     // build is red — or, just as important, that a red-looking count of errors did NOT
     // fail the build because none of them touch this PR's own changes.
+    //
+    // A baseline (ticket R3, docs/SARIF.md) is the second reason a red-looking error may not
+    // block, and it applies in either scope — so in "all" scope, too, the note appears as soon
+    // as the baseline accepted an error, because the headline's count is then no longer the
+    // gate's.
     private static string? RenderGateNote(ScanResult result)
     {
         // A gate that fell back from diff scope because git failed is the one case where
@@ -136,32 +141,71 @@ public static class CommentFormatter
         // other note here: without it a reviewer sees pre-existing violations blocking a
         // PR that never touched them and concludes the tool is broken, rather than that
         // the checkout was.
-        if (result.Gate is { DegradedReason: { } reason })
+        if (result.Gate is { DegradedReason: { } reason } degraded)
         {
+            var exception = degraded.AcceptedByBaselineCount > 0
+                ? $", except the {degraded.AcceptedByBaselineCount} the baseline accepts."
+                : ".";
             return $"⚠️ **Could not scope this gate to the PR's own changes** — {reason} " +
-                   "Falling back to gating on the whole scan, so pre-existing violations count here.";
+                   $"Falling back to gating on the whole scan, so pre-existing violations count here{exception}";
         }
 
-        if (result.Gate is not { Scope: "diff" } gate)
+        if (result.Gate is not { } gate)
         {
             return null;
         }
 
+        var accepted = gate.AcceptedByBaselineCount;
+
+        if (gate.Scope != "diff")
+        {
+            if (accepted == 0)
+            {
+                return null;
+            }
+
+            return gate.Blocked
+                ? $"🚫 **Blocking** — {gate.BlockingErrorCount} {Plural(gate.BlockingErrorCount, "error")} " +
+                  $"not in the baseline; {accepted} more {IsAre(accepted)} accepted by it."
+                : $"ℹ️ Not blocking — the {accepted} {Plural(accepted, "error")} above {IsAre(accepted)} " +
+                  "accepted by the baseline.";
+        }
+
         if (gate.Blocked)
         {
-            return $"🚫 **Blocking this PR** — {gate.BlockingErrorCount} " +
-                   $"{Plural(gate.BlockingErrorCount, "error")} within this PR's own changed lines.";
+            var blocking = $"🚫 **Blocking this PR** — {gate.BlockingErrorCount} " +
+                           $"{Plural(gate.BlockingErrorCount, "error")} within this PR's own changed lines.";
+            return accepted == 0
+                ? blocking
+                : $"{blocking} {accepted} more there {IsAre(accepted)} accepted by the baseline.";
         }
 
         if (result.Summary.ErrorCount > 0)
         {
-            var verb = result.Summary.ErrorCount == 1 ? "is" : "are";
-            return $"ℹ️ Not blocking this PR — the {result.Summary.ErrorCount} " +
-                   $"{Plural(result.Summary.ErrorCount, "error")} above {verb} outside this PR's own changed lines.";
+            var errors = result.Summary.ErrorCount;
+            if (accepted == 0)
+            {
+                return $"ℹ️ Not blocking this PR — the {errors} " +
+                       $"{Plural(errors, "error")} above {IsAre(errors)} outside this PR's own changed lines.";
+            }
+
+            var outside = errors - accepted;
+            return outside == 0
+                ? $"ℹ️ Not blocking this PR — the {errors} {Plural(errors, "error")} above " +
+                  $"{IsAre(errors)} accepted by the baseline."
+                : $"ℹ️ Not blocking this PR — of the {errors} errors above, {accepted} {IsAre(accepted)} " +
+                  $"accepted by the baseline and {outside} {IsAre(outside)} outside this PR's own changed lines.";
         }
 
         return null;
     }
+
+    private static string IsAre(int count) => count == 1 ? "is" : "are";
+
+    // A violation the baseline accepted is listed like any other — it is still there — but
+    // marked, so nobody reads an error in the list as the reason the build is red.
+    private static string BaselineMark(Violation violation) =>
+        violation.Baselined ? " *(accepted by the baseline)*" : "";
 
     // A location-less diagnostic (ConventionCoverageAnalyzer reports against the whole
     // compilation) carries an empty FilePath and line 1, which rendered as "`:1`" in the

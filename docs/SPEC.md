@@ -124,6 +124,14 @@ Exactly the five fields fixed at bootstrap, implemented as
 }
 ```
 
+**Addendum (ticket R3, 2026-09-26).** Two trailing fields, additive in the same way as
+`gate`: `fingerprint` (string) — the finding's identity across commits, a SHA-256 of rule,
+file, whitespace-normalised line text and occurrence, set on every fresh scan and `null`
+only in JSON written before it existed — and `baselined` (boolean) — `true` when the
+baseline the scan was given accepts the finding, which is then reported but does not block.
+The five fields above are unchanged, and they alone remain a violation's identity when the
+pull-request comment compares two scans. See [`SARIF.md`](SARIF.md) §3.
+
 ---
 
 ## 3. The engine output JSON schema
@@ -197,6 +205,15 @@ runtime the scan runs on, plus declarations of the .NET Framework APIs the migra
 detect (`src/Portcullis.Engine/Semantics/`). NuGet packages and other projects are still
 out of reach. The output schema is unchanged; `rulesEvaluated` counts the migration rules
 like any other.
+
+**Addendum (ticket R3, 2026-09-26).** Two additive fields and a stricter order. `baseline`
+(object or `null`): `{path, entryCount, acceptedCount}` for the baseline file the scan was
+judged against, `null` when there was none. `gate.acceptedByBaselineCount` (integer): the
+error-severity violations in the gate's scope that the baseline accepted, and that
+`blockingErrorCount` therefore leaves out. `violations` are now sorted by `filePath`,
+`line`, then column, `ruleId` and `message`, so two findings on one line come out in the
+same order on every run. SARIF 2.1.0 is a separate output (`--sarif <file>`), not a change
+to this document; see [`SARIF.md`](SARIF.md).
 
 ---
 
