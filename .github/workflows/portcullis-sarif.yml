@@ -68,8 +68,10 @@ jobs:
           fi
 
           # What each filter removed, next to what is left, so the run page shows why the
-          # SARIF holds what it holds.
-          python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          # SARIF holds what it holds — in the job summary, and in the log, where the API
+          # can read it too.
+          set -o pipefail
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
           import json
           scan = json.load(open("portcullis-scan.json"))
           run = json.load(open("portcullis.sarif"))["runs"][0]
