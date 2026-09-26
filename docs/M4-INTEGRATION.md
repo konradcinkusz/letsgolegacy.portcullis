@@ -1,10 +1,10 @@
-# ArchGate — M4 integration verification note
+# Portcullis — M4 integration verification note
 
-> **Written before the rename.** This project was called `ArchGate` until 2026-09-13,
-> when a name collision with an established product in the same problem space forced a
-> move to `Portcullis`. This document keeps the old name throughout, deliberately: it is
-> a dated record, and rewriting it would make it claim something other than what
-> happened.
+> **Names updated.** This record predates the project's current name, Portcullis,
+> settled on 2026-09-13 before anything was published. Identifiers, commands and paths
+> below are given with today's names — `PORTCULLIS_*` rule ids, the `portcullis`
+> command, the `Portcullis.*` projects — so they match the code in this repository; the
+> findings themselves are as recorded.
 
 Date: 2026-08-17. Written after merging Track A (P2/P9/P10 rules), Track B (CI/PR
 comment), and Track C (git-based provenance), each as its own pull request in the
@@ -20,14 +20,14 @@ Track C's real `GitProvenanceProvider` implementation only ever merged into the
 `track-c-provenance` branch (its pull request's base) — `main` still had only the M2
 contract stub, `ProvenanceModels.cs`. `track-a-engine` and `track-b-ci` themselves were
 never updated either; they still sat at the bootstrap commit. Verified directly by
-diffing `src/ArchGate.Engine/Provenance/` between `main` and `track-c-provenance` before
+diffing `src/Portcullis.Engine/Provenance/` between `main` and `track-c-provenance` before
 touching anything — `main` had one file, `track-c-provenance` had six.
 
 This repository was never actually in the state M4 requires until this session: three
 real implementations, coexisting, buildable, testable together. Fixed by merging
 `track-c-provenance` into this integration branch (`git merge origin/track-c-provenance
 --no-ff`) — a clean, conflict-free merge (both share the bootstrap commit as merge
-base; Track C's commits only ever touched `src/ArchGate.Engine/Provenance/` and its own
+base; Track C's commits only ever touched `src/Portcullis.Engine/Provenance/` and its own
 tests, disjoint from Tracks A/B's files), bringing in `GitCommandRunner.cs`,
 `GitOutputParsers.cs`, `AiToolClassifier.cs`, `GitProvenanceProvider.cs`, and their 14
 tests unchanged.
@@ -40,15 +40,15 @@ Ubuntu's own package archive, which the session's egress policy allows even thou
 `builds.dotnet.microsoft.com` (the path `dotnet-install.sh`/`setup-dotnet` use) is
 blocked. Everything below is a real, executed command, not static review.
 
-- `dotnet build archgate.sln` after the Track C merge, before any new code — clean, 0
+- `dotnet build portcullis.sln` after the Track C merge, before any new code — clean, 0
   warnings, 0 errors, all five projects.
-- `dotnet test archgate.sln` after the merge, before any new code — 59/59 passing (23
-  `ArchGate.CiComment.Tests` + 36 `ArchGate.Engine.Tests`, the latter being the 22
+- `dotnet test portcullis.sln` after the merge, before any new code — 59/59 passing (23
+  `Portcullis.CiComment.Tests` + 36 `Portcullis.Engine.Tests`, the latter being the 22
   pre-existing Track A tests plus Track C's 14 `GitProvenanceProviderTests`).
 - After adding the provenance-wiring code (section 3) and its own tests (section 4):
-  `dotnet build archgate.sln` — still 0 warnings, 0 errors. `dotnet test archgate.sln` —
+  `dotnet build portcullis.sln` — still 0 warnings, 0 errors. `dotnet test portcullis.sln` —
   67/67 passing (23 CiComment + 44 Engine, the 8 new tests being
-  `tests/ArchGate.Engine.Tests/ScannerProvenanceTests.cs`).
+  `tests/Portcullis.Engine.Tests/ScannerProvenanceTests.cs`).
 
 ## 3. Wiring provenance into the engine (docs/SPEC.md section 4, "consumption contract")
 
@@ -102,19 +102,19 @@ public static async Task<ScanResult> ScanAsync(
   is treated as the equivalent of review having happened, not as unattended AI output.
   This is a judgment call, open to revisiting, not a fact derived from the SPEC text.
 
-`src/ArchGate.Cli/Program.cs` gained two new flags so this is reachable from the CLI
-(and, later, from `archgate-pr-check.yml`) without changing the existing `archgate scan
+`src/Portcullis.Cli/Program.cs` gained two new flags so this is reachable from the CLI
+(and, later, from `portcullis-pr-check.yml`) without changing the existing `portcullis scan
 <path>` contract when they are omitted:
 
 ```
-archgate scan <path> [--provenance-range <commitOrRange>] [--provenance-repo <path>]
+portcullis scan <path> [--provenance-range <commitOrRange>] [--provenance-repo <path>]
 ```
 
 `--provenance-range` triggers `new GitProvenanceProvider(repo).GetProvenance(range)`
 before the scan; `--provenance-repo` defaults to `<path>` and only needs setting when
 `<path>` is a subdirectory of the actual git repository.
 
-## 4. New tests (`tests/ArchGate.Engine.Tests/ScannerProvenanceTests.cs`)
+## 4. New tests (`tests/Portcullis.Engine.Tests/ScannerProvenanceTests.cs`)
 
 Exercised against the real, registered rules (`RuleRegistry.All`), not a synthetic
 diagnostic — proves the wiring works on the actual scan path, not just the escalation
@@ -137,7 +137,7 @@ function in isolation:
 checked out at `<consumer-checkout>` (HEAD at the fixture's own `verifiedAgainstCommit`,
 64 real commits).
 
-**Baseline — `archgate scan <consumer-checkout>/src`, no provenance:**
+**Baseline — `portcullis scan <consumer-checkout>/src`, no provenance:**
 
 ```
 filesScanned: 156, rulesEvaluated: 3, violations: 15
@@ -149,8 +149,8 @@ Roslyn-checkable entries — the same three Track A's pull request already estab
 (`QrCode.cs:11`/`CONSUMER-003`, `SystemMessage.cs:11`/`CONSUMER-005`,
 `AdvertMessage.cs:11`/`CONSUMER-006`), independently reconfirmed live in this session's
 own run rather than trusted from that PR's description. All are
-`ARCHGATE_P9_ORPHAN_ENTITY`, default severity `warning`. The 4 pre-existing errors are
-all `ARCHGATE_P9_CONTROLLER_NO_DBCONTEXT` (a different, real violation class also
+`PORTCULLIS_P9_ORPHAN_ENTITY`, default severity `warning`. The 4 pre-existing errors are
+all `PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT` (a different, real violation class also
 present in `<consumer>` today, not itself a fixture entry).
 
 **Same scan, with real provenance —
@@ -161,7 +161,7 @@ root commit to `HEAD`, i.e. blame-attribution for every currently-live line):**
 summary: { errorCount: 9, warningCount: 6, infoCount: 0 }
 ```
 
-5 of the 5 `ARCHGATE_P10_CUSTOM_BASE_CLASS` warnings (the web client classes)
+5 of the 5 `PORTCULLIS_P10_CUSTOM_BASE_CLASS` warnings (the web client classes)
 escalated to `error`. Spot-checked two, directly against `git blame`/`git log`, not
 taken on the tool's word:
 
@@ -176,32 +176,32 @@ This is the concrete proof docs/SPEC.md section 4 asked for: the same architectu
 defect gets a stricter gate when it was AI-authored, driven by real git history, not a
 synthetic example.
 
-**Full chain — piping that scan into `ArchGate.CiComment`:** renders correctly (grouped
+**Full chain — piping that scan into `Portcullis.CiComment`:** renders correctly (grouped
 by file, `🆕 new` / `✅ resolved` sections correctly identify the 5 severity-escalated
 P10 violations as both "resolved" at their old `warning` severity and "new" at `error`,
 since the diff keys on rule+location, not severity), and exits `1` — confirmed as the
 literal process exit code, not inferred from the rendered text. `dotnet run --project
-src/ArchGate.CiComment -- --current <scan.json>` with no `--pr`/`GITHUB_TOKEN` degrades
+src/Portcullis.CiComment -- --current <scan.json>` with no `--pr`/`GITHUB_TOKEN` degrades
 to "skipping comment publish" rather than crashing, exactly as designed for a local run.
 
 ## 6. An honest gap this run surfaced, not fixed here
 
-The CLI's and `ArchGate.CiComment`'s exit-code gate is **absolute**: `errorCount > 0`
+The CLI's and `Portcullis.CiComment`'s exit-code gate is **absolute**: `errorCount > 0`
 over the whole scan, not `errorCount > 0` restricted to what a given PR's diff
-introduced (`archgate-pr-check.yml`'s own comment already says as much: *"exits non-zero
+introduced (`portcullis-pr-check.yml`'s own comment already says as much: *"exits non-zero
 when the scan has any error-severity violation... so it doubles as the merge gate"*).
 Concretely, this means: because `<consumer>`' `src/` already carries 4 pre-existing
-`ARCHGATE_P9_CONTROLLER_NO_DBCONTEXT` errors today, dropping `archgate-pr-check.yml`
+`PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT` errors today, dropping `portcullis-pr-check.yml`
 onto `<consumer>` right now would fail **every** PR's gate immediately — including one
 that touches nothing near those controllers — not specifically a PR that introduces a
 new violation.
 
 Separately, and more specific to `fixtures/consumer-violations.json`: 9 of its 11
-entries are `ARCHGATE_P9_ORPHAN_ENTITY`-shaped, whose **default** severity is `warning`,
+entries are `PORTCULLIS_P9_ORPHAN_ENTITY`-shaped, whose **default** severity is `warning`,
 not `error`. A PR literally reintroducing one of them would not, on its own, fail the
 absolute-count gate today — only provenance escalation (section 3, when the offending
 lines are AI-authored) or an unrelated pre-existing error in the same tree would make it
-fail, as this run's own numbers show. So the roadmap's M4 wording — "ArchGate
+fail, as this run's own numbers show. So the roadmap's M4 wording — "[Portcullis]
 genuinely blocks a PR carrying one of the documented violations" — holds unconditionally
 for the `error`-severity fixture-adjacent class (`CONTROLLER_NO_DBCONTEXT`) and
 conditionally for the `warning`-severity orphan-entity class (holds when AI-authored,
@@ -209,7 +209,7 @@ via section 3's mechanism; does not hold on its own for a human-authored reintro
 under the current absolute-count gate).
 
 Not fixed in this session: whether the gate should switch to diff-based ("only new
-violations block", using the same before/after comparison `ArchGate.CiComment` already
+violations block", using the same before/after comparison `Portcullis.CiComment` already
 computes for its `🆕`/`✅` sections) is a real product decision with consequences for
 how `<consumer>` dogfooding (M6) would actually work, not something to change as a side
 effect of wiring provenance in. Flagged here, deliberately not decided, for whoever

@@ -1,11 +1,10 @@
-# ArchGate — FINDINGS (Milestone M5)
+# Portcullis — FINDINGS (Milestone M5)
 
-> **Written before the rename.** This project was called `ArchGate` until 2026-09-13,
-> when a name collision with an established product in the same problem space forced a
-> move to `Portcullis`. This document keeps the old name throughout, deliberately: it is
-> a dated record, and rewriting it would make it claim something other than what
-> happened. The rule ids quoted here are the pre-rename `ARCHGATE_*` ids, which is what
-> the run this document reports actually printed; today they are `PORTCULLIS_*`.
+> **Names updated.** This record predates the project's current name, Portcullis,
+> settled on 2026-09-13 before anything was published. Identifiers, commands and paths
+> below are given with today's names — `PORTCULLIS_*` rule ids, the `portcullis`
+> command, the `Portcullis.*` projects — so they match the code in this repository; the
+> findings themselves are as recorded.
 
 Written for milestone M5, whose brief was one line: the whole system deliberately
 attacked end to end — what the tool actually caught, not what it should. Same
@@ -30,7 +29,7 @@ Two complementary sources of evidence, both real:
    rules now in `RuleRegistry.All` — grounding numbers, not a controlled experiment.
 2. **A purpose-built scratch git repository** (not `<consumer>`, not committed or pushed
    anywhere — five commits, deliberately shaped to isolate one pipeline behavior each),
-   scanned and piped through `ArchGate.CiComment` at each step. This is the actual
+   scanned and piped through `Portcullis.CiComment` at each step. This is the actual
    "attack": each commit is a deliberate, realistic PR shape — a human-authored warning,
    an AI-authored warning, an unconditional error, and a completely clean, unrelated
    commit — and this document reports the literal process exit code and rendered
@@ -38,7 +37,7 @@ Two complementary sources of evidence, both real:
 
 ## 2. Real `<consumer>`, whole-system snapshot
 
-`archgate scan <consumer-checkout>/src`, 2026-08-17, all 6 rules registered:
+`portcullis scan <consumer-checkout>/src`, 2026-08-17, all 6 rules registered:
 
 ```
 filesScanned: 156, rulesEvaluated: 6
@@ -47,14 +46,14 @@ summary: { errorCount: 4, warningCount: 14, infoCount: 0 }
 
 | Rule | Count | Severity |
 |---|---|---|
-| `ARCHGATE_P9_CONTROLLER_NO_DBCONTEXT` | 4 | error |
-| `ARCHGATE_P9_ORPHAN_ENTITY` | 6 | warning |
-| `ARCHGATE_P10_CUSTOM_BASE_CLASS` | 5 | warning |
-| `ARCHGATE_P11_VENDOR_SDK_OUTSIDE_ADAPTER` | 3 | warning |
-| `ARCHGATE_P4_*` | 0 | — |
-| `ARCHGATE_P15_MISSING_SERVICE_DEFAULTS` | 0 | — |
+| `PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT` | 4 | error |
+| `PORTCULLIS_P9_ORPHAN_ENTITY` | 6 | warning |
+| `PORTCULLIS_P10_CUSTOM_BASE_CLASS` | 5 | warning |
+| `PORTCULLIS_P11_VENDOR_SDK_OUTSIDE_ADAPTER` | 3 | warning |
+| `PORTCULLIS_P4_*` | 0 | — |
+| `PORTCULLIS_P15_MISSING_SERVICE_DEFAULTS` | 0 | — |
 
-The plain fact this table states, stated plainly: **if `archgate-pr-check.yml` were
+The plain fact this table states, stated plainly: **if `portcullis-pr-check.yml` were
 dropped onto `<consumer>` today, every single PR would fail the gate immediately** — not
 because of anything the hypothetical PR touches, but because `<consumer>/src` already
 carries 4 `error`-severity violations. This was already flagged as a risk in
@@ -95,14 +94,14 @@ exactly this purpose: **two structurally identical violations — same rule, sam
 severity — one authored by a human, one by "Claude", diverge in outcome.** Gadget
 (commit B, outside the B..C provenance range) stays a warning and does not block.
 Sprocket (commit C, inside the range, `Co-Authored-By: Claude`) escalates to an error
-and blocks the merge — piped through the full `ArchGate.CiComment` chain, not just the
+and blocks the merge — piped through the full `Portcullis.CiComment` chain, not just the
 scanner:
 
 ```
 ❌ 1 error, ⚠️ 1 warning — 6 rules evaluated across 6 files in 768ms.
 ...
 ### Sprocket.cs
-- ❌ line 3 — ARCHGATE_P9_ORPHAN_ENTITY: ...
+- ❌ line 3 — PORTCULLIS_P9_ORPHAN_ENTITY: ...
 ```
 
 exiting `1`, confirmed literally. The `--previous` diff also correctly labels Sprocket
@@ -144,8 +143,8 @@ relying on `<consumer>`' more tangled real history to make the point.
   section 6 — it reproduces on demand, in two commits, every time.
 - The escalation and gate mechanisms are rule-agnostic by construction
   (`Scanner.ApplyProvenanceEscalation` operates purely on `filePath`/`line`, never on
-  `ruleId`), so exercising them through `ARCHGATE_P9_ORPHAN_ENTITY`/
-  `ARCHGATE_P9_CONTROLLER_NO_DBCONTEXT` is evidence about the mechanism itself, not
+  `ruleId`), so exercising them through `PORTCULLIS_P9_ORPHAN_ENTITY`/
+  `PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT` is evidence about the mechanism itself, not
   something that needs separately repeating for each of the other 4 rules.
 
 ## 5. What this does not prove
@@ -169,7 +168,7 @@ relying on `<consumer>`' more tangled real history to make the point.
   in one real example, as every rule in this engine is, does not by itself guarantee no
   further gaps exist elsewhere.
 - **Nothing here touches M6** (dogfooding — fixing `<consumer>`'s own open violations
-  under ArchGate's live gate). That remains sequenced after this document, per the
+  under Portcullis's live gate). That remains sequenced after this document, per the
   original sequencing caveat: fixing `<consumer>` now would destroy the fixture this and
   every prior milestone actively consume.
 

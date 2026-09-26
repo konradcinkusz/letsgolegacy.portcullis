@@ -1,10 +1,10 @@
 # Bootstrap verification note
 
-> **Written before the rename.** This project was called `ArchGate` until 2026-09-13,
-> when a name collision with an established product in the same problem space forced a
-> move to `Portcullis`. This document keeps the old name throughout, deliberately: it is
-> a dated record, and rewriting it would make it claim something other than what
-> happened.
+> **Names updated.** This record predates the project's current name, Portcullis,
+> settled on 2026-09-13 before anything was published. Identifiers, commands and paths
+> below are given with today's names — `PORTCULLIS_*` rule ids, the `portcullis`
+> command, the `Portcullis.*` projects — so they match the code in this repository; the
+> findings themselves are as recorded.
 
 Date: 2026-08-17. Written at the end of the bootstrap session (M0, M1D, M2), before the
 three parallel tracks begin. The discipline: say plainly what was actually run and
@@ -13,16 +13,16 @@ either a command that was run in this session, or is explicitly marked unbuilt.
 
 ## What was actually run and confirmed working
 
-- `dotnet build` on the full solution (`archgate.sln`: `ArchGate.Engine`, `ArchGate.Cli`,
-  `ArchGate.Engine.Tests`) — clean, 0 warnings, 0 errors.
+- `dotnet build` on the full solution (`portcullis.sln`: `Portcullis.Engine`, `Portcullis.Cli`,
+  `Portcullis.Engine.Tests`) — clean, 0 warnings, 0 errors.
 - `dotnet test` — 3/3 passing:
   `ScanAsync_WithZeroRulesRegistered_ReturnsValidEmptyResult`,
   `ScanAsync_ExcludesBinAndObjDirectories`,
   `ScanAsync_OnMissingPath_ReturnsEmptyResultRatherThanThrowing`.
-- `dotnet run --project src/ArchGate.Cli -- scan <consumer-checkout>/src` — ran for
+- `dotnet run --project src/Portcullis.Cli -- scan <consumer-checkout>/src` — ran for
   real against `<consumer>`' full `src/` tree, exit code `0`, produced the literal JSON
   reproduced in `docs/SPEC.md` section 3 (156 files scanned, 0 rules, 0 violations,
-  schema-valid). Also run against archgate's own `src/` (6 files) as a smaller sanity
+  schema-valid). Also run against portcullis's own `src/` (6 files) as a smaller sanity
   check before the `<consumer>` run; same shape, different counts.
 - The JSON output was diffed by eye against the schema table in `docs/SPEC.md` section
   3 field-by-field — every field present, every type matches, `violations: []` and
@@ -76,7 +76,7 @@ Everything past the skeleton. Concretely:
   has been run against `fixtures/consumer-violations.json` and caught anything — that
   fixture is unconsumed reference data until Track A writes a rule against it.
 - **The mutation pass.** No deliberately broken rule variant exists, because no rule
-  exists yet to break. `MUTATIONS.md` does not exist. The claim "archgate detects
+  exists yet to break. `MUTATIONS.md` does not exist. The claim "portcullis detects
   architectural drift" has no evidence behind it at all yet — it is exactly the kind of
   claim this project's own house style exists to prevent stating prematurely.
 - **The CI action.** No GitHub Action, no PR comment formatter, nothing under
@@ -98,7 +98,7 @@ Everything past the skeleton. Concretely:
 
 ## What this session does not claim
 
-This session does not claim archgate catches anything. It claims: the schema is frozen
+This session does not claim portcullis catches anything. It claims: the schema is frozen
 and was validated against a real run, not a hand-written guess; the fixture data was
 independently re-verified rather than trusted from `<consumer>`' own possibly-stale docs;
 and the skeleton compiles, tests green, and runs for real. That is the complete list.

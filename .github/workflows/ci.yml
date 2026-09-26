@@ -19,6 +19,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Ticket R1: the project's former name must not reappear anywhere in the tree — not in
+  # code, not in docs, not in a "renamed from" note. `git grep` searches every tracked
+  # file of this checkout. The pattern is written with a bracket expression so that this
+  # workflow, which has to contain it, does not match itself.
+  former-name:
+    name: Former name absent
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Fail if the former name reappears
+        run: |
+          if git grep -n -i -e 'arch[g]ate'; then
+            echo "::error title=Former name::the project's former name reappeared in the files listed above; use Portcullis"
+            exit 1
+          fi
+          echo "The former name appears nowhere in the tree."
+
   build-and-test:
     name: Build and test
     runs-on: ubuntu-latest

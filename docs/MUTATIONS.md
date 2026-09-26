@@ -1,11 +1,10 @@
 # Portcullis — Mutation pass (Track A, `track-a-engine`)
 
-> **Renamed, not frozen.** The runs recorded here were performed while this project was
-> called `ArchGate`, and the diagnostic ids they printed said `ARCHGATE_*`. Unlike the
-> other dated records here, this document was rewritten to the current `PORTCULLIS_*`
-> ids, because `CONTRIBUTING.md` requires every new rule to be documented here — it is a
-> live reference, and a live reference carrying dead ids is worse than a lightly edited
-> record. Nothing but the names changed.
+> **Names updated.** The runs recorded here predate the project's current name, and the
+> diagnostic ids they printed carried the earlier prefix. This document gives every id
+> as today's `PORTCULLIS_*`, because `CONTRIBUTING.md` requires every new rule to be
+> documented here — it is a live reference, and a live reference carrying dead ids is
+> worse than a lightly edited record. Nothing but the names changed.
 
 Date: 2026-08-17. Written for the engine track's mutation pass, in the same honesty
 discipline `docs/BOOTSTRAP.md` already carried into this repository: *"a suite that has
