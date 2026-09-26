@@ -44,3 +44,6 @@ secrets.env
 !tests/**/fixtures/**
 .secondkey/
 evidence-out/
+
+# The analyzer package CI packs for the consumer fixture (ci.yml, analyzer-floor).
+fixtures/analyzer-consumer/feed/

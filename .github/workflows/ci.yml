@@ -61,3 +61,41 @@ jobs:
       # enough here, unlike the PR check, which diffs against the PR's base commit.
       - name: Test
         run: dotnet test portcullis.sln --no-build --configuration Release
+
+  analyzer-floor:
+    # Portcullis.Rules is built against Roslyn 4.8.0, the compiler of the .NET 8 SDK's 1xx
+    # band, so its analyzers load on every SDK from .NET 8 on (the pin in
+    # Portcullis.Rules.csproj). This packs the analyzer package, builds a consumer on that
+    # SDK — where a newer Roslyn is refused with CS9057 — and checks the analyzers ran.
+    name: Analyzer package on the .NET 8 SDK
+    runs-on: ubuntu-latest
+    env:
+      PORTCULLIS_VERSION: 0.1.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET (10 packs, 8.0.1xx consumes)
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.1xx
+            10.0.x
+
+      - name: Pack the analyzer package
+        run: dotnet pack src/Portcullis.Rules --configuration Release -p:Version="$PORTCULLIS_VERSION" -o fixtures/analyzer-consumer/feed
+
+      - name: Build a consumer on the .NET 8 SDK
+        working-directory: fixtures/analyzer-consumer
+        run: |
+          set -o pipefail
+          sdk="$(dotnet --version)"
+          case "$sdk" in
+            8.0.1*) echo "Consumer SDK: $sdk" ;;
+            *) echo "::error::the consumer must build on the .NET 8 SDK's 1xx band (Roslyn 4.8), got $sdk"; exit 1 ;;
+          esac
+          dotnet build --configuration Release -p:PortcullisVersion="$PORTCULLIS_VERSION" 2>&1 | tee build.log
+          if ! grep -qF "PendingOrders.cs(11,55): warning PORTCULLIS_MIG_SYNC_OVER_ASYNC" build.log; then
+            echo "::error::the consumer built, but PORTCULLIS_MIG_SYNC_OVER_ASYNC was not reported — the analyzers did not run"
+            exit 1
+          fi
