@@ -253,7 +253,7 @@ milestone. Types live in `src/Portcullis.Engine/Provenance/ProvenanceModels.cs`.
 | `ranges[].source` | `"human"` \| `"ai"` \| `"mixed"` \| `"unknown"` | |
 | `ranges[].confidence` | number, 0.0–1.0 | |
 | `ranges[].attribution.tool` | string or `null` | e.g. `"claude-code"`, `"github-copilot"`, `"cursor"` — `null` if not determinable. |
-| `ranges[].attribution.method` | string | e.g. `"commit-trailer"`, `"git-blame-authorship"`, `"heuristic"`. |
+| `ranges[].attribution.method` | string | e.g. `"commit-trailer"`, `"git-blame-authorship"`, `"no-attribution-signal"` — the three `GitProvenanceProvider` emits, the last with `source` `"unknown"` when `git blame` or the blamed commit's metadata yields nothing to attribute the lines by. |
 | `ranges[].attribution.commitSha` | string or `null` | |
 
 Consumption contract (for M4, not this milestone): a rule may read a
