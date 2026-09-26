@@ -1,0 +1,24 @@
+<Project>
+
+  <!--
+    Shared version and package identity for everything Portcullis publishes.
+
+    Version is deliberately a single knob: the release workflow passes
+    `-p:Version=<tag>` so the NuGet packages, the dotnet tool, and the container image
+    all carry the same number as the git tag that produced them. Nothing here is
+    per-project, so the packages can never drift into disagreeing about what release
+    they belong to.
+  -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Authors>konradcinkusz</Authors>
+    <Company>konradcinkusz</Company>
+    <Product>Portcullis</Product>
+    <Copyright>Copyright (c) 2026 dev_insight</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/konradcinkusz/letsgolegacy.portcullis</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/konradcinkusz/letsgolegacy.portcullis</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+</Project>

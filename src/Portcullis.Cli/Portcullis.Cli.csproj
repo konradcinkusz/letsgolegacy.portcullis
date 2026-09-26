@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Portcullis.Engine\Portcullis.Engine.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    Distributed as a .NET global/local tool: `dotnet tool install -g Portcullis.Cli` puts an
+    `portcullis` command on PATH. A tool, not a container, is the default for the CLI on
+    purpose — see docs/DISTRIBUTION.md: Docker container GitHub Actions run only on
+    Linux hosted runners, while a tool installs identically on Linux, Windows and macOS
+    runners and on a developer's own machine. The container image published alongside it
+    is for CI systems that would rather not install a .NET SDK at all.
+  -->
+  <PropertyGroup>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>portcullis</ToolCommandName>
+    <PackageId>Portcullis.Cli</PackageId>
+    <Title>Portcullis CLI</Title>
+    <Description>Scans a C# codebase against your team's declared architecture rules and prints a machine-readable JSON result. Exits non-zero when the merge gate blocks — over the whole scan, or scoped to a pull request's own diff when given a commit range.</Description>
+    <PackageTags>roslyn;architecture;static-analysis;portcullis;cli;dotnet-tool;ci</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="PACKAGE-README.md" Pack="true" PackagePath="README.md" Visible="false" />
+  </ItemGroup>
+
+</Project>

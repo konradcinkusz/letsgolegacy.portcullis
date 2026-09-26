@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="How a consuming team wires Portcullis into GitHub Actions, GitLab CI or Azure DevOps — including how to adopt it on a codebase that already has violations.">
+<meta name="color-scheme" content="light dark">
+<title>Portcullis CI Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  /* ---- Light palette: the complete token set lives on bare :root ---- */
+  :root {
+    --ground:      #f7f8fa;
+    --surface:     #ffffff;
+    --surface-alt: #f0f2f6;
+    --ink:         #131722;
+    --muted:       #59617a;
+    --line:        #e2e5ec;
+    --accent:      #3b4fd8;
+    --accent-soft: #eceefc;
+    --block:       #c8352c;
+    --block-soft:  #fdeceb;
+    --warn:        #9c5c06;
+    --warn-soft:   #fdf3e3;
+    --pass:        #157f4a;
+    --pass-soft:   #e8f6ee;
+    --code-bg:     #f4f6f9;
+    --code-ink:    #232a3a;
+
+    --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --f-body:    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --f-mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+    --measure: 68ch;
+    --radius: 6px;
+  }
+
+  /* Un-stamped viewers (the default) resolve dark here; an explicit light choice wins. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0d1017;
+      --surface:     #151a24;
+      --surface-alt: #1b2130;
+      --ink:         #e8ebf2;
+      --muted:       #98a1b6;
+      --line:        #262e3d;
+      --accent:      #92a0ff;
+      --accent-soft: #1b2140;
+      --block:       #ff7c70;
+      --block-soft:  #34191a;
+      --warn:        #e3a648;
+      --warn-soft:   #2e2413;
+      --pass:        #56cf92;
+      --pass-soft:   #122a1f;
+      --code-bg:     #11161f;
+      --code-ink:    #cdd5e4;
+    }
+  }
+  /* Explicit dark choice wins over a light OS. */
+  :root[data-theme="dark"] {
+    --ground:      #0d1017;
+    --surface:     #151a24;
+    --surface-alt: #1b2130;
+    --ink:         #e8ebf2;
+    --muted:       #98a1b6;
+    --line:        #262e3d;
+    --accent:      #92a0ff;
+    --accent-soft: #1b2140;
+    --block:       #ff7c70;
+    --block-soft:  #34191a;
+    --warn:        #e3a648;
+    --warn-soft:   #2e2413;
+    --pass:        #56cf92;
+    --pass-soft:   #122a1f;
+    --code-bg:     #11161f;
+    --code-ink:    #cdd5e4;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+    display: grid;
+    grid-template-columns: 216px minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+
+  /* ---------- masthead ---------- */
+  header.masthead {
+    grid-column: 1 / -1;
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 48px;
+  }
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: clamp(2.1rem, 5vw, 3.1rem);
+    line-height: 1.05;
+    letter-spacing: -0.022em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    max-width: var(--measure);
+    font-size: 1.075rem;
+    color: var(--muted);
+    margin: 0;
+  }
+
+  /* ---------- sidebar ---------- */
+  nav.toc {
+    position: sticky;
+    top: 28px;
+    font-size: 13.5px;
+    border-left: 1px solid var(--line);
+    padding-left: 18px;
+  }
+  nav.toc p {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  nav.toc a {
+    color: var(--muted);
+    text-decoration: none;
+    display: block;
+    border-left: 2px solid transparent;
+    margin-left: -20px;
+    padding-left: 18px;
+  }
+  nav.toc a:hover { color: var(--ink); }
+  nav.toc a.active { color: var(--accent); border-left-color: var(--accent); font-weight: 500; }
+  nav.toc .num { font-family: var(--f-mono); opacity: 0.6; margin-right: 6px; }
+
+  /* ---------- content ---------- */
+  main { min-width: 0; }
+  section + section { margin-top: 60px; }
+  section > * { max-width: var(--measure); }
+  section > .full { max-width: none; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: 1.6rem;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    margin: 0 0 8px;
+    scroll-margin-top: 24px;
+    text-wrap: balance;
+  }
+  h2 .num {
+    font-family: var(--f-mono);
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+    letter-spacing: 0.06em;
+  }
+  h3 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 1.075rem;
+    margin: 34px 0 8px;
+    letter-spacing: -0.008em;
+  }
+  p { margin: 0 0 16px; }
+  a { color: var(--accent); }
+  strong { font-weight: 600; }
+  .lede { color: var(--muted); margin-bottom: 22px; }
+
+  ul { margin: 0 0 16px; padding-left: 20px; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--muted); }
+
+  /* ---------- code ---------- */
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 0 0 18px;
+    font-family: var(--f-mono);
+    font-size: 13.2px;
+    line-height: 1.62;
+  }
+  code {
+    font-family: var(--f-mono);
+    font-size: 0.885em;
+    background: var(--surface-alt);
+    padding: 0.12em 0.36em;
+    border-radius: 3px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .cmt { color: var(--muted); }
+  .ok  { color: var(--pass); }
+  .bad { color: var(--block); }
+  .wrn { color: var(--warn); }
+
+  figure.term {
+    margin: 0 0 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--code-bg);
+  }
+  figure.term figcaption {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-alt);
+  }
+  figure.term pre { border: 0; border-radius: 0; margin: 0; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.4px; background: var(--surface); }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    background: var(--surface-alt);
+  }
+  tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+
+  /* ---------- severity chips: the gate's own vocabulary ---------- */
+  .chip {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2.5px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.err  { background: var(--block-soft); color: var(--block); }
+  .chip.warn { background: var(--warn-soft);  color: var(--warn); }
+  .chip.pass { background: var(--pass-soft);  color: var(--pass); }
+
+  /* ---------- callouts: stripe encodes severity, not decoration ---------- */
+  .note {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 15px 18px;
+    margin: 0 0 20px;
+  }
+  .note > :last-child { margin-bottom: 0; }
+  .note.stop { border-left-color: var(--block); background: var(--block-soft); }
+  .note.care { border-left-color: var(--warn);  background: var(--warn-soft); }
+  .note .label {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+  .note.stop .label { color: var(--block); }
+  .note.care .label { color: var(--warn); }
+
+  .verified {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--pass);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: -6px 0 18px;
+  }
+  .verified::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--pass);
+    flex: none;
+  }
+
+  /* the section that decides whether a rollout survives */
+  section.keystone {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 30px 32px 26px;
+  }
+  section.keystone > * { max-width: 62ch; }
+  section.keystone > .full { max-width: none; }
+
+  footer {
+    grid-column: 1 / -1;
+    margin-top: 72px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+  }
+
+  a:focus-visible, nav.toc a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    nav.toc { display: none; }
+    header.masthead { padding-top: 44px; }
+    section.keystone { padding: 22px 20px 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto !important; transition: none !important; }
+  }
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Portcullis · consumer guide</p>
+    <h1>Setting up the architecture gate in your CI</h1>
+    <p class="standfirst">
+      How a team with a real C# repository stops architecture violations from merging —
+      on GitHub Actions, GitLab, Azure DevOps, or anything that can run a container.
+      Section&nbsp;4 is the one that decides whether the rollout survives contact with a
+      codebase that already has violations.
+    </p>
+  </header>
+
+  <nav class="toc">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#pick"><span class="num">1</span>Pick your path</a></li>
+      <li><a href="#analyzer"><span class="num">2</span>The fast path</a></li>
+      <li><a href="#gate"><span class="num">3</span>The PR gate</a></li>
+      <li><a href="#adopt"><span class="num">4</span>Existing violations</a></li>
+      <li><a href="#output"><span class="num">5</span>Reading the output</a></li>
+      <li><a href="#trouble"><span class="num">6</span>Troubleshooting</a></li>
+      <li><a href="#source"><span class="num">7</span>From source</a></li>
+      <li><a href="#limits"><span class="num">8</span>What it can't do</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <div class="note care">
+      <span class="label">Status, up front</span>
+      <p>The packages below (<code>Portcullis.Analyzers</code>, <code>Portcullis.Cli</code>,
+      <code>Portcullis.CiComment</code>) and the container image are <strong>built and
+      verified locally but not yet published</strong> — that happens on the first
+      <code>v*</code> tag. Until then every <code>dotnet add package</code> and
+      <code>dotnet tool install</code> here fails with “package not found”, and
+      <a href="#source">§7</a> has the build-from-source path that works today.
+      Everything else was run for real before it was written down.</p>
+    </div>
+
+    <section id="pick">
+      <h2><span class="num">01</span>Pick your path</h2>
+      <p class="lede">Four channels. They compose rather than compete — most teams end up
+      with the analyzer package for fast local feedback <em>and</em> the Action for the gate.</p>
+
+      <div class="tablewrap full">
+        <table>
+          <thead>
+            <tr><th>You want</th><th>Use</th><th>Effort</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Violations to fail the build everywhere, including on developers' machines</td>
+              <td><code>Portcullis.Analyzers</code> package</td>
+              <td>one line</td>
+            </tr>
+            <tr>
+              <td>A pull-request gate with a comment, on GitHub</td>
+              <td>The Action</td>
+              <td>one workflow file</td>
+            </tr>
+            <tr>
+              <td>The same on GitLab, Azure DevOps or Jenkins</td>
+              <td><code>portcullis</code> tool, or the container</td>
+              <td>a few lines</td>
+            </tr>
+            <tr>
+              <td>To look before committing to anything</td>
+              <td><code>portcullis scan</code> locally</td>
+              <td>one command</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>The analyzer catches a violation before you push; the gate catches it if you push
+      anyway. Neither replaces the other.</p>
+    </section>
+
+    <section id="analyzer">
+      <h2><span class="num">02</span>The fast path: the analyzer package</h2>
+      <p class="lede">One package reference. No CI step, nothing installed on the runner.</p>
+
+      <pre><code>dotnet add package Portcullis.Analyzers</code></pre>
+
+      <p>On the next <code>dotnet build</code>, violations arrive as ordinary compiler
+      diagnostics — which means they work in Visual Studio, Rider, VS Code,
+      <code>dotnet build</code>, and every CI system that already builds your code:</p>
+
+      <figure class="term full">
+        <figcaption>dotnet build — a consumer project with nothing but the package reference</figcaption>
+<pre><code><span class="bad">Controllers/WidgetsController.cs(5,22): error PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT:</span>
+    Controller 'WidgetsController' references 'WidgetDbContext' directly. Controllers
+    are transport only — bind, authorize, delegate — route through an orchestrator or
+    repository instead (architecture-standards P9).
+<span class="bad">Build FAILED.</span></code></pre>
+      </figure>
+      <p class="verified">Verified: this exact output, from a throwaway project that never referenced the Portcullis source.</p>
+
+      <p>To cover every project at once, put it in <code>Directory.Build.props</code>:</p>
+
+<pre><code>&lt;Project&gt;
+  &lt;ItemGroup&gt;
+    &lt;PackageReference Include="Portcullis.Analyzers" Version="0.1.0" PrivateAssets="all" /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;</code></pre>
+
+      <p><code>PrivateAssets="all"</code> stops Portcullis appearing as a dependency of
+      <em>your</em> package if you publish one. Pin the version —
+      <code>Version="*"</code> means a rule added in a later release can fail your build
+      with nobody having changed a line.</p>
+
+      <div class="note">
+        <span class="label">One limitation</span>
+        <p>This path has <strong>no diff scoping</strong>: every violation in every file
+        is reported on every build. Correct for a compiler diagnostic, wrong for a first
+        encounter with a legacy codebase — see <a href="#adopt">§4</a>.</p>
+      </div>
+    </section>
+
+    <section id="gate">
+      <h2><span class="num">03</span>The pull-request gate</h2>
+
+      <h3>GitHub Actions</h3>
+      <p>A complete, working gate: scans <code>src/</code>, posts one sticky comment that
+      updates in place instead of spamming a new one per push, and fails the job when the
+      gate blocks.</p>
+
+<pre><code><span class="cmt"># .github/workflows/architecture.yml</span>
+name: Architecture
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write        <span class="cmt"># required for the sticky comment</span>
+
+jobs:
+  portcullis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      <span class="cmt"># required — see below</span>
+      - uses: konradcinkusz/letsgolegacy.portcullis@v0
+        with:
+          path: src</code></pre>
+
+      <div class="note stop">
+        <span class="label">fetch-depth: 0 is not optional</span>
+        <p><code>actions/checkout</code> defaults to a shallow clone that does not contain
+        your PR's base commit. Without it Portcullis cannot tell which lines your PR
+        changed, so diff scoping silently cannot happen. The Action detects this, prints a
+        warning, and falls back to whole-tree scope — it does not pretend to have scoped
+        when it hasn't. But the fix is this line, not the warning.</p>
+      </div>
+
+      <div class="tablewrap full">
+        <table>
+          <thead><tr><th>Input</th><th>Default</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>path</code></td><td><code>src</code></td><td>Directory to scan, relative to the repo root</td></tr>
+            <tr><td><code>diff-scoped</code></td><td><code>true</code></td><td>Only violations in the PR's own changed lines can block</td></tr>
+            <tr><td><code>comment</code></td><td><code>true</code></td><td>Post / update the sticky PR comment</td></tr>
+            <tr><td><code>fail-on-block</code></td><td><code>true</code></td><td>Set <code>false</code> to report without enforcing</td></tr>
+            <tr><td><code>dotnet-version</code></td><td><code>10.0.x</code></td><td>Set <code>''</code> to use the runner's existing SDK</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Outputs — <code>blocked</code>, <code>error-count</code>,
+      <code>blocking-error-count</code>, <code>result-path</code> — let a later step react:</p>
+
+<pre><code>- uses: konradcinkusz/letsgolegacy.portcullis@v0
+  id: portcullis
+  with: { path: src, fail-on-block: false }
+- if: steps.portcullis.outputs.blocked == 'true'
+  run: echo "would block on ${{ steps.portcullis.outputs.blocking-error-count }} violation(s)"</code></pre>
+
+      <h3>GitLab CI</h3>
+      <p>The container needs no .NET SDK on the runner. One wrinkle: GitLab overrides a
+      container's <code>ENTRYPOINT</code>, so call the DLL explicitly.</p>
+
+<pre><code>portcullis:
+  image: ghcr.io/konradcinkusz/letsgolegacy.portcullis:0.1.0
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: 0              <span class="cmt"># same reason as fetch-depth: 0</span>
+  script:
+    - dotnet /app/Portcullis.Cli.dll scan "$CI_PROJECT_DIR/src"
+        --provenance-range "$CI_MERGE_REQUEST_DIFF_BASE_SHA..$CI_COMMIT_SHA"
+        --provenance-repo "$CI_PROJECT_DIR"
+        | tee portcullis.json
+  artifacts:
+    when: always
+    paths: [portcullis.json]</code></pre>
+
+      <h3>Azure DevOps</h3>
+<pre><code>- task: UseDotNet@2
+  inputs: { version: '10.0.x' }
+
+- script: |
+    dotnet tool install -g Portcullis.Cli --version 0.1.0
+    export PATH="$PATH:$HOME/.dotnet/tools"
+    BASE=$(git merge-base "origin/$(System.PullRequest.TargetBranch)" HEAD)
+    portcullis scan "$(Build.SourcesDirectory)/src" \
+      --provenance-range "$BASE..HEAD" \
+      --provenance-repo "$(Build.SourcesDirectory)"
+  displayName: Portcullis</code></pre>
+
+      <h3>Anything else</h3>
+      <p>The portable form — <code>git merge-base</code> works everywhere and needs no
+      CI-specific variables:</p>
+<pre><code>BASE=$(git merge-base origin/main HEAD)
+portcullis scan ./src --provenance-range "$BASE..HEAD" --provenance-repo .
+
+<span class="cmt"># or with no .NET installed at all</span>
+docker run --rm -v "$PWD:/workspace" ghcr.io/konradcinkusz/letsgolegacy.portcullis:0.1.0 \
+  scan /workspace/src --provenance-range "$BASE..HEAD" --provenance-repo /workspace</code></pre>
+    </section>
+
+    <section id="adopt" class="keystone">
+      <h2><span class="num">04</span>Adopting on a codebase that already has violations</h2>
+      <p class="lede">This is where most architecture-gate rollouts die. It is worth the
+      five minutes.</p>
+
+      <p>Point any rule engine at a real codebase and it finds pre-existing violations —
+      that is the point of it. But a gate that fails on all of them fails <em>every</em>
+      pull request, including one-line changes touching nothing related. Developers can't
+      merge, so within a week somebody switches the gate off, and it never comes back on.</p>
+
+      <p>Portcullis has two independent answers. Use both.</p>
+
+      <h3>4.1 &nbsp;Diff scoping — on by default in the Action</h3>
+      <p>Given a commit range, Portcullis still <strong>reports</strong> every violation it
+      finds, but only <strong>blocks</strong> on ones inside the lines your PR actually
+      changed. A real run against a repository carrying pre-existing errors, where the PR
+      changed one unrelated file:</p>
+
+      <figure class="term full">
+        <figcaption>portcullis scan — pre-existing error present, PR touched something else</figcaption>
+<pre><code>summary: { errorCount: <span class="bad">1</span>, warningCount: 2, infoCount: 0 }
+gate:    { blocked: <span class="ok">false</span>, scope: "diff", blockingErrorCount: <span class="ok">0</span> }
+<span class="ok">exit 0</span></code></pre>
+      </figure>
+
+      <p>And the PR comment says so plainly rather than leaving anyone to guess:</p>
+      <div class="note">
+        <p style="margin:0">ℹ️ Not blocking this PR — the 1 error above is outside this PR's own changed lines.</p>
+      </div>
+
+      <p>The effect: existing debt stays visible on every PR without being anyone's
+      emergency, while anything <em>new</em> is stopped at the boundary. Debt shrinks as
+      files get touched, instead of demanding a big-bang cleanup before the gate can be
+      switched on at all.</p>
+
+      <h3>4.2 &nbsp;Severity ratcheting via .editorconfig</h3>
+      <p>Every rule is an ordinary Roslyn diagnostic, so it tunes the ordinary way — per
+      rule, and per path:</p>
+
+<pre><code><span class="cmt"># .editorconfig</span>
+root = true
+
+[*.cs]
+<span class="cmt"># start noisy rules as suggestions while you pay down violations</span>
+dotnet_diagnostic.PORTCULLIS_P10_CUSTOM_BASE_CLASS.severity = suggestion
+
+<span class="cmt"># turn one all the way off for now</span>
+dotnet_diagnostic.PORTCULLIS_P4_SEED_DATA_IN_MODEL.severity = none
+
+<span class="cmt"># promote one you're already clean on, so it can never regress</span>
+dotnet_diagnostic.PORTCULLIS_P9_ORPHAN_ENTITY.severity = error
+
+<span class="cmt"># legacy code is exempt; new code is not</span>
+[src/Legacy/**.cs]
+dotnet_diagnostic.PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT.severity = none</code></pre>
+
+      <p class="verified">Verified, not assumed: promoting <code>PORTCULLIS_P9_ORPHAN_ENTITY</code> to <code>error</code> failed a build that previously passed; setting <code>PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT</code> to <code>none</code> removed a build-failing error entirely.</p>
+
+      <div class="note">
+        <span class="label">A sane rollout</span>
+        <p>Everything to <code>suggestion</code> on day one → fix one rule's violations →
+        raise that rule to <code>warning</code>, then <code>error</code> → repeat. Each
+        ratchet is one line, and no step ever blocks work unrelated to it.</p>
+      </div>
+    </section>
+
+    <section id="output">
+      <h2><span class="num">05</span>Reading the output</h2>
+      <p class="lede"><code>portcullis scan</code> prints one JSON document per run.</p>
+
+<pre><code>{
+  "filesScanned": 156,
+  "rulesEvaluated": 7,
+  "violations": [
+    { "ruleId": "PORTCULLIS_P9_ORPHAN_ENTITY", "filePath": "Domain/QrCode.cs",
+      "line": 11, "message": "...", "severity": "warning" }
+  ],
+  "summary": { "errorCount": 4, "warningCount": 14, "infoCount": 0 },
+  "gate": { "blocked": true, "scope": "diff", "blockingErrorCount": 5 }
+}</code></pre>
+
+      <p><code>summary</code> is what was <strong>found</strong>. <code>gate</code> is what
+      <strong>blocks</strong>. They are deliberately different numbers, and the gap between
+      them is your pre-existing debt.</p>
+
+      <div class="tablewrap full">
+        <table>
+          <thead><tr><th>Exit code</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip pass">0</span></td><td>Not blocked</td></tr>
+            <tr><td><span class="chip err">1</span></td><td>Blocked — a verdict, not a failure</td></tr>
+            <tr><td><span class="chip warn">2</span></td><td>Bad usage — the only code that means Portcullis itself failed</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="trouble">
+      <h2><span class="num">06</span>Troubleshooting</h2>
+      <p class="lede">Built from real failure modes, not imagined ones.</p>
+
+      <div class="tablewrap full">
+        <table>
+          <thead><tr><th>Symptom</th><th>Cause and fix</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>gate.scope</code> is <code>"all"</code> when you expected <code>"diff"</code></td>
+              <td>The base commit isn't in the checkout. Add <code>fetch-depth: 0</code> (GitHub) or <code>GIT_DEPTH: 0</code> (GitLab).</td>
+            </tr>
+            <tr>
+              <td>Gate passes when you're sure it should block</td>
+              <td>Check <code>gate.scope</code>. If it is <code>"diff"</code>, the violation is outside this PR's own changed lines — the gate working as designed. If it is <code>"all"</code> with a <code>degradedReason</code>, git could not resolve your range and the scan fell back to whole-tree gating; the reason says what failed. A git failure no longer passes silently — see <code>DIFF-GATE.md §3</code>.</td>
+            </tr>
+            <tr>
+              <td>Package installs but no diagnostics ever appear</td>
+              <td>Check the DLL sits at <code>analyzers/dotnet/cs/</code> inside the <code>.nupkg</code>. An analyzer packed to <code>lib/</code> installs cleanly and does nothing at all.</td>
+            </tr>
+            <tr>
+              <td><code>warning CS9057: … references version 4.x of the compiler, which is newer</code></td>
+              <td>Your SDK's Roslyn is older than the one Portcullis was built against. The package targets Roslyn 4.8 (the .NET 8 SDK's version) precisely to avoid this — seeing it means you're on an older SDK than .NET 8.</td>
+            </tr>
+            <tr>
+              <td><code>docker pull</code> from GHCR says unauthorized</td>
+              <td>A GHCR package is created <strong>private</strong> on its first push regardless of repository visibility. It has to be made public once, in the package's own settings.</td>
+            </tr>
+            <tr>
+              <td>Rules don't fire on code you know is wrong</td>
+              <td>Portcullis parses source directly rather than through MSBuild, so a type from a NuGet package or another project doesn't resolve. Some rules depend on that; others are blunted by it.</td>
+            </tr>
+            <tr>
+              <td>A rule fires on code that is correct</td>
+              <td>That's a bug worth reporting, not something to work around — a noisy gate is worse than a missing rule. Silence it per <a href="#adopt">§4.2</a> and open an issue with the snippet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="source">
+      <h2><span class="num">07</span>Before the first release: running from source</h2>
+      <p class="lede">Works today. Needs only the .NET 10 SDK.</p>
+
+<pre><code>git clone https://github.com/konradcinkusz/letsgolegacy.portcullis
+cd letsgolegacy.portcullis
+dotnet build portcullis.sln
+
+<span class="cmt"># scan any repository on your machine</span>
+dotnet run --project src/Portcullis.Cli -- scan /path/to/your-repo/src
+
+<span class="cmt"># with the diff-scoped gate</span>
+cd /path/to/your-repo
+BASE=$(git merge-base origin/main HEAD)
+dotnet run --project /path/to/letsgolegacy.portcullis/src/Portcullis.Cli -- \
+  scan ./src --provenance-range "$BASE..HEAD" --provenance-repo .</code></pre>
+
+      <p>You can also build the analyzer package locally and consume it from a private feed:</p>
+<pre><code>dotnet pack src/Portcullis.Rules/Portcullis.Rules.csproj -c Release -o ./artifacts
+<span class="cmt"># then add ./artifacts as a package source in your repo's nuget.config</span></code></pre>
+    </section>
+
+    <section id="limits">
+      <h2><span class="num">08</span>What it can't do yet</h2>
+      <p class="lede">Stated here rather than discovered later.</p>
+      <ul>
+              <li><strong>Rule <em>shape</em> is fixed even though the conventions are configurable.</strong> You can tell a rule where your adapters live (see <code>docs/CONFIGURATION.md</code>); you cannot redefine what counts as leaking a vendor type.</li>
+        <li><strong>Six of fifteen principles.</strong> Nine are unimplemented — five need
+        cross-file or temporal judgment a single-snapshot analyzer doesn't have, four
+        aren't C# at all (Dockerfiles, <code>fly.toml</code>, CI YAML, prose).</li>
+        <li><strong>The container image and release workflow are unexecuted.</strong> Both
+        need a real tag push; the distribution notes say so rather than claiming they work.</li>
+        <li><strong>A git failure degrades the gate rather than passing it</strong> — the scan falls back to whole-tree gating and reports <code>gate.degradedReason</code>, as in §6.</li>
+      </ul>
+      <p>If something here doesn't work as written, that's a documentation bug worth an
+      issue — every command in this guide except the container examples was run before it
+      was written down.</p>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>Portcullis — MIT licensed</span>
+    <span><a href="https://github.com/konradcinkusz/letsgolegacy.portcullis">github.com/konradcinkusz/letsgolegacy.portcullis</a></span>
+    <span>Markdown source: <a href="https://github.com/konradcinkusz/letsgolegacy.portcullis/blob/main/docs/TUTORIAL.md"><code>docs/TUTORIAL.md</code></a></span>
+  </footer>
+</div>
+
+<script>
+  // Active-section highlighting in the sidebar: reference material gets scanned, so
+  // "where am I" should be answerable without reading.
+  const links = new Map();
+  document.querySelectorAll('nav.toc a').forEach(a => {
+    links.set(a.getAttribute('href').slice(1), a);
+  });
+  const seen = new Set();
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => e.isIntersecting ? seen.add(e.target.id) : seen.delete(e.target.id));
+    const order = [...links.keys()];
+    const current = order.find(id => seen.has(id));
+    links.forEach((a, id) => a.classList.toggle('active', id === current));
+  }, { rootMargin: '-10% 0px -70% 0px' });
+  document.querySelectorAll('main section[id]').forEach(s => io.observe(s));
+</script>
+</body>
+</html>

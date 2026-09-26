@@ -1,0 +1,52 @@
+name: Bug — something else behaved wrong
+description: A crash, a wrong gate verdict, a missed violation, bad output, or a broken install.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a rule that fired on good code, use the **False positive** template instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you ran, and what it did.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: The command, and its real output
+      description: Paste the command you ran and what it printed, not a summary. If the gate verdict is the issue, the `gate` object from the scan JSON is the useful part.
+      render: shell
+    validations:
+      required: true
+  - type: dropdown
+    id: channel
+    attributes:
+      label: How you ran it
+      options:
+        - Analyzer package (dotnet build / IDE)
+        - CLI (portcullis scan)
+        - GitHub Action
+        - Container
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS and .NET SDK
+      placeholder: ubuntu-latest, .NET 10.0.112

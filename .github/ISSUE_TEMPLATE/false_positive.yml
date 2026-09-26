@@ -1,0 +1,55 @@
+name: False positive — a rule fired on code that is fine
+description: A diagnostic fired where it should not have.
+labels: ["false-positive", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        False positives are high priority here. A gate that cries wolf gets switched off
+        within a week, which is worse than a rule that does not exist.
+  - type: input
+    id: rule-id
+    attributes:
+      label: Rule id
+      placeholder: PORTCULLIS_P9_ORPHAN_ENTITY
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: The code it fired on
+      description: The smallest C# that still triggers it. Include the file's path inside your repository — most rules are convention-based and the path is part of the input.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: why-fine
+    attributes:
+      label: Why this code is fine
+      description: What the rule concluded, and what is actually true.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Your configuration
+      description: Your `portcullis.json` and any `dotnet_diagnostic.*` lines from `.editorconfig`/`.globalconfig`. If you have none, say so — that is itself useful.
+      render: json
+  - type: dropdown
+    id: channel
+    attributes:
+      label: How you ran it
+      options:
+        - Analyzer package (dotnet build / IDE)
+        - CLI (portcullis scan)
+        - GitHub Action
+        - Container
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: 0.1.0, or a commit sha if built from source
+    validations:
+      required: true

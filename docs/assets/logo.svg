@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="title desc">
+  <title id="title">Portcullis</title>
+  <desc id="desc">The architecture-standards masonry arch with a portcullis dropped across its piers, refusing passage.</desc>
+  <!--
+    Shares its arch, keystone and stylobate with architecture-standards/docs/assets/logo.svg
+    on purpose: Portcullis enforces that constitution, it doesn't author a new one. The one
+    addition is the bar across the piers — the dropped grille, the part of the mark that is only
+    Portcullis's: the constitution defines the arch, Portcullis decides what gets to pass
+    through it. Colour follows the same fallback convention as the source mark: attribute
+    fills are the light theme and survive anywhere CSS is stripped (GitHub's image proxy,
+    LaTeX, a raster export), while the stylesheet swaps in the dark-theme set.
+  -->
+  <style>
+    .stone  { fill: #4F46E5; }
+    .key    { fill: #F59E0B; }
+    .plinth { fill: #64748B; }
+    .bar    { fill: #C8352C; }
+    @media (prefers-color-scheme: dark) {
+      .stone  { fill: #818CF8; }
+      .key    { fill: #FBBF24; }
+      .plinth { fill: #94A3B8; }
+      .bar    { fill: #FF7C70; }
+    }
+  </style>
+
+  <g transform="translate(0 -2.5)">
+    <!-- Voussoirs, springing line at y=37, outer radius 26, inner 16.5 (unchanged from architecture-standards) -->
+    <path class="stone" fill="#4F46E5" d="M6.01 36.27 A26 26 0 0 1 10.55 22.31 L18.39 27.68 A16.5 16.5 0 0 0 15.51 36.54 Z"/>
+    <path class="stone" fill="#4F46E5" d="M11.4 21.14 A26 26 0 0 1 23.28 12.51 L26.47 21.46 A16.5 16.5 0 0 0 18.93 26.93 Z"/>
+    <path class="key"   fill="#F59E0B" d="M24.66 12.06 A26 26 0 0 1 39.34 12.06 L36.66 21.17 A16.5 16.5 0 0 0 27.34 21.17 Z"/>
+    <path class="stone" fill="#4F46E5" d="M40.72 12.51 A26 26 0 0 1 52.6 21.14 L45.07 26.93 A16.5 16.5 0 0 0 37.53 21.46 Z"/>
+    <path class="stone" fill="#4F46E5" d="M53.45 22.31 A26 26 0 0 1 57.99 36.27 L48.49 36.54 A16.5 16.5 0 0 0 45.61 27.68 Z"/>
+
+    <!-- Piers, landing flush on the stylobate -->
+    <path class="stone" fill="#4F46E5" d="M6 38.6h9.5V52H6z"/>
+    <path class="stone" fill="#4F46E5" d="M48.5 38.6H58V52h-9.5z"/>
+
+    <!-- Stylobate -->
+    <path class="plinth" fill="#64748B" d="M3 52h58v6H3z"/>
+
+    <!-- Gate: a boom barrier mounted through the piers, spanning the opening -->
+    <rect class="bar" fill="#C8352C" x="11" y="43.3" width="42" height="6" rx="3"/>
+    <circle class="bar" fill="#C8352C" cx="15.5" cy="46.3" r="4.4"/>
+    <circle class="bar" fill="#C8352C" cx="48.5" cy="46.3" r="4.4"/>
+  </g>
+</svg>

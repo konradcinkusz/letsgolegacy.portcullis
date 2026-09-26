@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "engineVersion": "1.0.0+mockaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "scannedPath": "<consumer-checkout>/src",
+  "scanStartedUtc": "2026-08-17T10:00:00.0000000Z",
+  "scanDurationMs": 402.5,
+  "filesScanned": 156,
+  "rulesEvaluated": 3,
+  "violations": [
+    {
+      "ruleId": "PORTCULLIS-P9-CONTROLLER-NO-DBCONTEXT",
+      "filePath": "src/Demo.AdvertsService/Controllers/AdvertsController.cs",
+      "line": 47,
+      "message": "AdvertsController references AdvertsDbContext directly; controllers must go through an orchestrator. See architecture-standards P9.",
+      "severity": "error"
+    },
+    {
+      "ruleId": "PORTCULLIS-P2-KERNEL-LOC-CEILING",
+      "filePath": "src/ServiceDefaults/Extensions.cs",
+      "line": 812,
+      "message": "ServiceDefaults exceeds the 800-line kernel ceiling (currently 812 lines). See architecture-standards P2.",
+      "severity": "warning"
+    }
+  ],
+  "summary": {
+    "errorCount": 1,
+    "warningCount": 1,
+    "infoCount": 0
+  }
+}

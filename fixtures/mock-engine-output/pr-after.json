@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "engineVersion": "1.0.0+mockbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "scannedPath": "<consumer-checkout>/src",
+  "scanStartedUtc": "2026-08-17T10:15:00.0000000Z",
+  "scanDurationMs": 415.9,
+  "filesScanned": 156,
+  "rulesEvaluated": 3,
+  "violations": [
+    {
+      "ruleId": "PORTCULLIS-P2-KERNEL-LOC-CEILING",
+      "filePath": "src/ServiceDefaults/Extensions.cs",
+      "line": 812,
+      "message": "ServiceDefaults exceeds the 800-line kernel ceiling (currently 812 lines). See architecture-standards P2.",
+      "severity": "warning"
+    },
+    {
+      "ruleId": "PORTCULLIS-P11-VENDOR-SDK-LEAK",
+      "filePath": "src/Demo.IdentityService/Services/EmailSender.cs",
+      "line": 22,
+      "message": "SendGrid.Helpers.Mail referenced outside the designated adapter namespace. See architecture-standards P11.",
+      "severity": "warning"
+    }
+  ],
+  "summary": {
+    "errorCount": 0,
+    "warningCount": 2,
+    "infoCount": 0
+  }
+}

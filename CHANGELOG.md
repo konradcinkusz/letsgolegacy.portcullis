@@ -1,0 +1,90 @@
+# Changelog
+
+All notable changes to this project are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+**Nothing has been released.** No `v*` tag has been pushed, no package is on nuget.org,
+and no container has been published — so every entry below sits under `[Unreleased]`, and
+`0.1.0` in `Directory.Build.props` is the version the first release *would* carry, not a
+version anyone can install. Same house rule as the rest of this repository: what has not
+happened is not written as though it had.
+
+## [Unreleased]
+
+### Added
+
+- **Rule engine on the Roslyn semantic model** — scans C# sources and reports each
+  violation at `file:line` as a deterministic, machine-readable verdict.
+- **Nine diagnostics across six principles** (P2, P4, P9, P10, P11, P15 of
+  [`architecture-standards`](https://github.com/konradcinkusz/architecture-standards)),
+  each with unit tests in both directions and a mutant proving the tests would notice if
+  the rule broke — see [`docs/MUTATIONS.md`](docs/MUTATIONS.md).
+- **Two convention-coverage diagnostics** — `PORTCULLIS_CONVENTION_UNMATCHED` and
+  `PORTCULLIS_NO_CONVENTION_MATCHED`, so a gate that matched nothing is loud instead of
+  vacuously green.
+- **Configurable conventions** — `portcullis.json` for the CLI/Action/container, a
+  `.globalconfig` for the analyzer package, both flattened onto one convention model.
+  See [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
+- **Diff-scoped merge gate** — everything found is reported, but only violations inside
+  the lines a pull request actually changed block it.
+  See [`docs/DIFF-GATE.md`](docs/DIFF-GATE.md).
+- **AI provenance as a severity input** — line ranges attributed to an AI agent, read
+  from real git history (commit trailers and authorship, never code style), get a
+  stricter threshold. Never a badge or a score.
+- **Four distribution channels** — the `Portcullis.Analyzers` package, the `portcullis` CLI
+  and `portcullis-ci-comment` tools, a composite GitHub Action, and a GHCR container.
+  Built and verified locally; none of them published. See
+  [`docs/DISTRIBUTION.md`](docs/DISTRIBUTION.md).
+- **Sticky pull-request comment** — one comment, updated in place, carrying the diff of
+  violations rather than a link to a dashboard.
+- **Tag-driven release pipeline** with a consistency gate that fails the build if
+  `action.yml`'s default tools version disagrees with the tag being released.
+- **Project documentation for outside readers** — `CONTRIBUTING.md`, `SECURITY.md`,
+  `CODE_OF_CONDUCT.md`, issue and pull-request templates, and this changelog.
+
+### Changed
+
+- **Imported into `konradcinkusz/letsgolegacy.portcullis` as component C5 of
+  [Second Key](https://github.com/konradcinkusz/letsgolegacy.secondkey)** (ticket R0 in
+  [`docs/WORKPLAN.md`](docs/WORKPLAN.md)). Source, tests, fixtures and the user-facing
+  documentation were brought over without the private predecessor's git history;
+  internal planning notes were left behind, and the documents that cited them were
+  edited so no link dangles. The `net8.0` projects now target `net10.0`; the analyzers
+  stay on `netstandard2.0`. CI builds and runs the full suite on every pull request and
+  every push to `main`.
+- **Renamed from ArchGate to Portcullis (2026-09-13).** Repository, three package ids
+  (`Portcullis.Analyzers`, `Portcullis.Cli`, `Portcullis.CiComment`), every diagnostic id
+  (`ARCHGATE_P*` → `PORTCULLIS_P*`), assembly and namespace names, project directories,
+  the solution file, the CLI tool commands (`portcullis`, `portcullis-ci-comment`), the
+  config file (`archgate.json` → `portcullis.json`), the container tag, the Action
+  reference, the pull-request workflow and the sticky comment's marker. Nothing had been
+  published under the old name, so nothing breaks for anyone. The reason was a name
+  collision: an established product in this same problem space already uses the old
+  name. The dated records in this repository keep the old name on purpose, each with a
+  note saying so.
+
+### Fixed
+
+- **The gate no longer fails open when git fails.** `ProvenanceStatus` distinguishes
+  "the diff is genuinely empty" from "the git command failed", and the scanner falls back
+  to absolute counting with `Gate.DegradedReason` set instead of silently passing.
+  This closes the limitation recorded in [`docs/DIFF-GATE.md`](docs/DIFF-GATE.md) §3.
+- **The CLI honours configuration.** It previously passed `options: null` to
+  `CompilationWithAnalyzers`, discarding analyzer configuration entirely — so the
+  analyzer package could be configured and the CLI could not, from the same rules.
+- **The pull-request comment path no longer crashes** on malformed or partial scan
+  output.
+
+### Known limitations
+
+Recorded here because they are load-bearing for anyone evaluating this, and stated at
+length in the README's *Honest limits*:
+
+- Single-compilation analysis in the CLI path: types from referenced packages or other
+  projects do not resolve. The analyzer package does not have this limitation.
+- Nine of the fifteen principles are unimplemented — five need cross-file, cross-repo or
+  historical context, four are not C# at all.
+- The project is unpublished: no package, no container and no `v*` tag exist yet.
+
+[Unreleased]: https://github.com/konradcinkusz/letsgolegacy.portcullis/commits/main

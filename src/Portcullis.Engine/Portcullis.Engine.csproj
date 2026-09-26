@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!--
+      RS1036/RS2008/RS1030/RS1037 are Microsoft.CodeAnalysis.Analyzers' guidance for
+      analyzers shipped as an IDE/NuGet package (release-tracking .md files, avoiding
+      GetSemanticModel in live-editor analysis, CompilationEnd tagging). None of that
+      applies here: RuleRegistry's analyzers run once per `portcullis scan` batch
+      invocation (src/Portcullis.Engine/Scanner.cs), not inside a live IDE, and this
+      project ships no separate analyzer NuGet package to version-track releases for.
+      RS1032 (message-format style) is a cosmetic heuristic that mis-fires on
+      placeholder syntax like '{1}.{2}' inside a messageFormat string.
+    -->
+    <NoWarn>RS1036;RS2008;RS1030;RS1037;RS1032</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Portcullis.Rules\Portcullis.Rules.csproj" />
+  </ItemGroup>
+
+</Project>

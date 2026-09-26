@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      netstandard2.0 is not a preference, it is the requirement: a Roslyn analyzer is
+      loaded by the compiler itself, which may be running on .NET Framework MSBuild
+      (Visual Studio) or on .NET (dotnet build). netstandard2.0 is the only target that
+      loads in both. This is the whole reason the rules live in their own project instead
+      of inside Portcullis.Engine (net10.0) — an analyzer built for net10.0 silently fails to
+      load in Visual Studio.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- See the same list in Portcullis.Engine.csproj: Roslyn's analyzer-authoring
+         meta-diagnostics about release-tracking files and live-IDE performance, which do
+         not apply to this batch scanner. RS1032 mis-fires on '{1}.{2}' placeholders. -->
+    <NoWarn>RS1036;RS2008;RS1030;RS1037;RS1032</NoWarn>
+  </PropertyGroup>
+
+  <!-- NuGet package: Portcullis.Analyzers -->
+  <PropertyGroup>
+    <PackageId>Portcullis.Analyzers</PackageId>
+    <Title>Portcullis architecture rules (Roslyn analyzers)</Title>
+    <Description>Roslyn analyzers that fail the build when C# code violates your team's declared architecture — layering, shared-kernel boundaries, persistence portability, vendor-SDK containment, observability wiring. Add the package and violations become ordinary compiler warnings and errors, in any IDE and any CI.</Description>
+    <PackageTags>roslyn;analyzers;architecture;static-analysis;portcullis;aspire;ci</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/konradcinkusz/letsgolegacy.portcullis</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/konradcinkusz/letsgolegacy.portcullis</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Authors>konradcinkusz</Authors>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!--
+      No symbols package: IncludeBuildOutput=false (below) means the build output is not
+      packed the normal way, so a .snupkg would come out empty and `dotnet pack` fails it
+      with NU5017. Debuggability is preserved instead by embedding the symbols and the
+      source-link metadata directly in the analyzer assembly itself.
+    -->
+    <IncludeSymbols>false</IncludeSymbols>
+    <DebugType>embedded</DebugType>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!--
+      An analyzer package ships its assembly under analyzers/dotnet/cs/, NOT under lib/ —
+      IncludeBuildOutput=false suppresses the default lib/ placement, and the None item
+      below puts it where the compiler actually looks. DevelopmentDependency keeps it out
+      of the consumer's own transitive dependency graph (it is a build-time tool, not a
+      runtime library), and SuppressDependenciesWhenPacking stops Microsoft.CodeAnalysis
+      from being imposed on consumers — the compiler already provides it.
+    -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Deliberately pinned to the OLDEST Roslyn an analyzer consumer is expected to have,
+      not the newest available. An analyzer built against a newer Microsoft.CodeAnalysis
+      than the consumer's compiler emits CS9057 ("references version 4.11.0.0 of the
+      compiler, which is newer than the currently running version 4.8.0.0") on every
+      build in every consuming repo — found by actually consuming the packed .nupkg from
+      a throwaway project, not by inspection. 4.8.0 is what the .NET 8 SDK ships, so this
+      loads cleanly on .NET 8 and every later SDK.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="PACKAGE-README.md" Pack="true" PackagePath="README.md" Visible="false" />
+  </ItemGroup>
+
+</Project>

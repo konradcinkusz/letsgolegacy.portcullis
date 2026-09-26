@@ -1,0 +1,126 @@
+name: Portcullis PR Check
+
+# Portcullis gating its own pull requests: the scan, the diff-scoped verdict and the
+# sticky comment. Build-and-test lives in ci.yml, which runs on every pull request too.
+#
+# No branch filter on `pull_request`, on purpose: pull requests here are stacked, so most
+# of them target another feature branch rather than main, and they need the gate as much
+# as the first one does.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: portcullis-pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # Diff-scoped gating and provenance escalation (docs/SPEC.md section 4,
+          # Scanner.ComputeDiffScopedGate) need `git diff`/`git blame` against the PR's
+          # base commit — not present in actions/checkout's default shallow clone
+          # (fetch-depth: 1). Without this, GitProvenanceProvider's git commands fail,
+          # which now degrades to an absolute-gate fallback with Gate.DegradedReason set,
+          # rather than passing on an empty ProvenanceReport — see the scan step below.
+          # fetch-depth: 0 still matters: the fallback gates on the whole tree, which is
+          # correct but stricter than this PR needs.
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore portcullis.sln
+
+      - name: Build
+        run: dotnet build portcullis.sln --no-restore --configuration Release
+
+      # There is no prior scan result on a PR's first push. actions/cache can't
+      # overwrite an existing key, so the key is pinned to this exact commit (always
+      # new) while restore-keys falls back to the most recent entry for this PR —
+      # i.e. "whatever the last push scored" — which is what the diff needs.
+      - name: Restore previous scan result
+        uses: actions/cache/restore@v5
+        with:
+          path: portcullis-last-scan.json
+          key: portcullis-scan-pr-${{ github.event.pull_request.number }}-${{ github.sha }}
+          restore-keys: |
+            portcullis-scan-pr-${{ github.event.pull_request.number }}-
+
+      # --provenance-range does double duty (Scanner.ScanAsync's own doc comment):
+      # it escalates AI-authored violations within the range to a stricter severity,
+      # AND scopes the merge gate to that range's changed lines (Gate.Scope "diff")
+      # instead of the whole repository (Gate.Scope "all", which is what every run
+      # before this one used — see docs/FINDINGS.md for why that blocked every PR
+      # unconditionally on a codebase's own pre-existing errors). If these git commands
+      # fail for any reason (which is what fetch-depth: 0 above exists to prevent),
+      # GitProvenanceProvider now reports a DEGRADED report rather than an empty one, and
+      # the scan falls back to the absolute gate with Gate.DegradedReason set, instead of
+      # passing on zero blocking violations. See ProvenanceStatus and docs/DIFF-GATE.md.
+      #
+      # `set +e` and the explicit check: the CLI exits 1 for a blocked gate, which under
+      # the default `bash -e` aborted this step and skipped the comment step below —
+      # precisely when a comment is most useful. The verdict itself is enforced by the
+      # comment step, which is the single place the gate is decided.
+      #
+      # The check is on the ARTIFACT, not on the exit code alone. `dotnet run` also exits
+      # 1 for its own failures (a missing build output, an unresolvable project), so an
+      # exit-code test would file "the host could not start the app" under "the gate
+      # blocked" and let the step pass. A blocked gate always writes a complete JSON
+      # document; a host failure writes nothing.
+      - name: Run Portcullis scan
+        run: |
+          set +e
+          dotnet run --no-build --configuration Release --project src/Portcullis.Cli -- \
+            scan "${{ github.workspace }}/src" \
+            --provenance-range "${{ github.event.pull_request.base.sha }}..${{ github.sha }}" \
+            --provenance-repo "${{ github.workspace }}" \
+            > portcullis-current-scan.json
+          scan_exit=$?
+          if [ "$scan_exit" -gt 1 ] || [ ! -s portcullis-current-scan.json ]; then
+            echo "::error::portcullis scan failed to run (exit $scan_exit, no scan result produced)"
+            exit 1
+          fi
+          exit 0
+
+      # Portcullis.CiComment exits non-zero exactly when ScanResult.Gate.Blocked is true —
+      # true unconditionally for any error-severity violation before this change, now
+      # scoped to error-severity violations within the PR's own diff (see the scan step
+      # above) — so this step is the gate: it fails the job, not just the comment.
+      - name: Render and publish the sticky PR comment
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -s portcullis-last-scan.json ]; then
+            dotnet run --no-build --configuration Release --project src/Portcullis.CiComment -- \
+              --current portcullis-current-scan.json \
+              --previous portcullis-last-scan.json \
+              --pr "${{ github.event.pull_request.number }}"
+          else
+            dotnet run --no-build --configuration Release --project src/Portcullis.CiComment -- \
+              --current portcullis-current-scan.json \
+              --pr "${{ github.event.pull_request.number }}"
+          fi
+
+      - name: Persist this scan result for the next push
+        if: always()
+        run: cp portcullis-current-scan.json portcullis-last-scan.json
+
+      - name: Cache scan result
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: portcullis-last-scan.json
+          key: portcullis-scan-pr-${{ github.event.pull_request.number }}-${{ github.sha }}
