@@ -53,16 +53,17 @@ happened is not written as though it had.
   edited so no link dangles. The `net8.0` projects now target `net10.0`; the analyzers
   stay on `netstandard2.0`. CI builds and runs the full suite on every pull request and
   every push to `main`.
-- **Renamed from ArchGate to Portcullis (2026-09-13).** Repository, three package ids
-  (`Portcullis.Analyzers`, `Portcullis.Cli`, `Portcullis.CiComment`), every diagnostic id
-  (`ARCHGATE_P*` → `PORTCULLIS_P*`), assembly and namespace names, project directories,
-  the solution file, the CLI tool commands (`portcullis`, `portcullis-ci-comment`), the
-  config file (`archgate.json` → `portcullis.json`), the container tag, the Action
-  reference, the pull-request workflow and the sticky comment's marker. Nothing had been
-  published under the old name, so nothing breaks for anyone. The reason was a name
-  collision: an established product in this same problem space already uses the old
-  name. The dated records in this repository keep the old name on purpose, each with a
-  note saying so.
+- **Name settled as Portcullis (2026-09-13), before anything was published.** The three
+  package ids (`Portcullis.Analyzers`, `Portcullis.Cli`, `Portcullis.CiComment`), every
+  diagnostic id (`PORTCULLIS_*`), assembly and namespace names, project directories, the
+  solution file, the CLI tool commands (`portcullis`, `portcullis-ci-comment`), the config
+  file (`portcullis.json`), the container tag, the Action reference, the pull-request
+  workflow and the sticky comment's marker all carry it. The earlier name collided with
+  an established product in the same problem space; nothing had been published under
+  it, so nothing breaks for anyone.
+- **Rename finished** (ticket R1 in [`docs/WORKPLAN.md`](docs/WORKPLAN.md)): the earlier
+  name appears nowhere in this repository's tree — the dated records now use today's
+  identifiers, each with a note saying so — and CI fails if it reappears.
 
 ### Fixed
 

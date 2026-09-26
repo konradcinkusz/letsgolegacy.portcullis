@@ -1,10 +1,10 @@
 # Work plan — `letsgolegacy.portcullis` (C5 gate)
 
 Portcullis is the Second Key gate: deterministic Roslyn analyzers run on every pull
-request, reported only on changed lines, as SARIF with a baseline. It continues the
-private `archgate` repository, which was renamed to Portcullis on 2026-09-13 because
-another established product already uses the ArchGate name; this repository is where
-the rename becomes complete and the migration rule set is added.
+request, reported only on changed lines, as SARIF with a baseline. It continues a
+private predecessor repository, renamed to Portcullis on 2026-09-13 because another
+established product already used its earlier name; this repository is where the rename
+becomes complete and the migration rule set is added.
 
 Ticket IDs match the cross-repository backlog. One ticket is one pull request.
 
@@ -12,7 +12,7 @@ Ticket IDs match the cross-repository backlog. One ticket is one pull request.
 
 | ID | Deliverable | Done when | Status |
 |---|---|---|---|
-| R0 | Import the Portcullis code base from `archgate` (source, tests, fixtures, user-facing docs; not internal strategy notes) with CI green | Build and the full test suite pass in this repository's CI | planned |
+| R0 | Import the Portcullis code base from the private predecessor repository (source, tests, fixtures, user-facing docs; not internal strategy notes) with CI green | Build and the full test suite pass in this repository's CI | planned |
 | R1 | Rename finished: repository, package and namespaces | The old name appears nowhere in the tree, enforced by a CI check | planned |
 | R2 | Migration rule set: `System.Web`, `HttpContext.Current`, `.Result` / `.Wait()`, `ConfigurationManager` instead of `IOptions` | Four analyzers ship with mutation-tested tests | planned |
 | R3 | SARIF 2.1 output with a changed-lines filter and a baseline file | A pull request produces filtered SARIF | planned |

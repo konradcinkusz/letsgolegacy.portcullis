@@ -34,9 +34,9 @@ Existing tools answer a different question. SonarQube grades code quality, Snyk 
 vulnerabilities, CodeClimate measures complexity — none of them know what *your*
 architecture is. `NetArchTest` and `ArchUnitNET` do check a declared architecture, and
 have for years, but as reflection-based test libraries you wire up yourself. The closest
-comparison is `archgate` ([archgate.dev](https://archgate.dev)), which enforces team rules
-against AI-written code too, via TypeScript check functions attached to ADRs,
-language-agnostic by design. This project takes the opposite bet — .NET only, on the
+comparison is a published tool that enforces team rules against AI-written code too, via
+TypeScript check functions attached to ADRs, language-agnostic by design. This project
+takes the opposite bet — .NET only, on the
 Roslyn semantic model, so it resolves real symbols and can point at a line rather than
 match text, and it ships as build-time compiler diagnostics plus a merge gate rather than
 a CLI check step.

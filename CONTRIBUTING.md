@@ -86,6 +86,9 @@ gate loses the team's trust faster than a narrow one earns it.
 - Flag limitations you know about rather than leaving them to be discovered. Several
   documents here exist purely to record a gap that was found and deliberately not fixed;
   that is a normal and welcome outcome.
+- CI (`.github/workflows/ci.yml`) builds, runs the full suite, and fails if the
+  project's former name reappears anywhere in the tree (job *Former name absent*). The
+  name is Portcullis everywhere — code, docs, and notes about the past alike.
 
 ## Releasing
 
