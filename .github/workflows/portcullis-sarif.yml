@@ -100,7 +100,7 @@ jobs:
           PY
 
       - name: Keep the SARIF as a build artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: portcullis-sarif
           path: |
