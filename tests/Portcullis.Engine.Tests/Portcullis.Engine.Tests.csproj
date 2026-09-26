@@ -9,8 +9,10 @@
     <IsTestProject>true</IsTestProject>
     <!-- See Portcullis.Engine.csproj's own NoWarn comment: the mutation pass's mutant
          analyzers (Rules/Mutants/) trip the same Roslyn analyzer-authoring meta-rules,
-         which don't apply to batch, test-only analyzer instances. -->
-    <NoWarn>RS1036;RS2008;RS1030;RS1037;RS1032</NoWarn>
+         which don't apply to batch, test-only analyzer instances. RS1041 (a compiler
+         extension in a net10.0 assembly) is the same case: the tests construct the
+         mutants in-process; no compiler ever loads this assembly as an analyzer. -->
+    <NoWarn>RS1036;RS2008;RS1030;RS1037;RS1032;RS1041</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

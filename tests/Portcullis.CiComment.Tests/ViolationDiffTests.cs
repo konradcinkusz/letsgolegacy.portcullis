@@ -31,13 +31,13 @@ public class ViolationDiffTests
 
         var diff = ViolationDiff.Compute(after, before);
 
-        Assert.Equal(1, diff.New.Count);
+        Assert.Single(diff.New);
         Assert.Equal(VendorSdkLeak, diff.New[0]);
 
-        Assert.Equal(1, diff.Resolved.Count);
+        Assert.Single(diff.Resolved);
         Assert.Equal(ControllerDbContext, diff.Resolved[0]);
 
-        Assert.Equal(1, diff.Unchanged.Count);
+        Assert.Single(diff.Unchanged);
         Assert.Equal(KernelCeiling, diff.Unchanged[0]);
     }
 
