@@ -27,7 +27,12 @@ cd letsgolegacy.portcullis
 dotnet build portcullis.sln
 dotnet test portcullis.sln
 dotnet run --project src/Portcullis.Cli -- scan ./src
+./scripts/install-hooks.sh     # the pre-commit secret scan; needs gitleaks
 ```
+
+The hook refuses a commit whose staged changes look like a credential. The same scan
+runs on every push and pull request (`secret-scan.yml`) over the whole history, so a
+clone without the hook still cannot land a secret unnoticed — it only finds out later.
 
 ## Project layout
 

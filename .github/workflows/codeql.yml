@@ -1,0 +1,31 @@
+name: CodeQL
+
+# Static analysis of Portcullis's own code. Portcullis gates other repositories' pull
+# requests; this is what checks the gate.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 3 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: analyze (csharp)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: csharp
+          build-mode: manual
+      - name: Build
+        run: dotnet build portcullis.sln --configuration Release
+      - uses: github/codeql-action/analyze@v4

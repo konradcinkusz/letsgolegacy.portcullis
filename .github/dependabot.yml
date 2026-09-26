@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      roslyn:
+        patterns: ["Microsoft.CodeAnalysis*"]
+      test-stack:
+        patterns: ["xunit*", "Microsoft.NET.Test.Sdk", "coverlet*"]
+  # Covers .github/workflows/ and the composite action.yml at the root.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
