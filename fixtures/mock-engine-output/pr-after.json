@@ -8,14 +8,14 @@
   "rulesEvaluated": 3,
   "violations": [
     {
-      "ruleId": "PORTCULLIS-P2-KERNEL-LOC-CEILING",
+      "ruleId": "PORTCULLIS_P2_KERNEL_LOC_CEILING",
       "filePath": "src/ServiceDefaults/Extensions.cs",
       "line": 812,
       "message": "ServiceDefaults exceeds the 800-line kernel ceiling (currently 812 lines). See architecture-standards P2.",
       "severity": "warning"
     },
     {
-      "ruleId": "PORTCULLIS-P11-VENDOR-SDK-LEAK",
+      "ruleId": "PORTCULLIS_P11_VENDOR_SDK_OUTSIDE_ADAPTER",
       "filePath": "src/Demo.IdentityService/Services/EmailSender.cs",
       "line": 22,
       "message": "SendGrid.Helpers.Mail referenced outside the designated adapter namespace. See architecture-standards P11.",

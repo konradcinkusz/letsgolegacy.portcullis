@@ -10,8 +10,8 @@ namespace Portcullis.Rules;
 /// ("P9") it implements — see docs/SPEC.md section 1 for the full rule-contract
 /// mapping.
 ///
-/// Naming deviates from SPEC.md section 1's own worked example in one respect, recorded
-/// in full in docs/MUTATIONS.md: the convention there is hyphenated
+/// Naming deviates from the convention SPEC.md section 1 first wrote down, for a reason
+/// recorded in full in docs/MUTATIONS.md: that convention was hyphenated
 /// ("PORTCULLIS-P&lt;n&gt;-&lt;slug&gt;"), but <c>Microsoft.CodeAnalysis.Diagnostics</c>
 /// rejects a hyphenated <c>Diagnostic.Id</c> at the exact
 /// <c>CompilationAnalysisContext.ReportDiagnostic</c>/<c>SyntaxNodeAnalysisContext
@@ -19,7 +19,7 @@ namespace Portcullis.Rules;
 /// <see cref="System.ArgumentException"/>, "which is not a valid identifier" — verified
 /// directly against Microsoft.CodeAnalysis.CSharp 4.11.0, not assumed). Rule ids here
 /// use underscores instead: "PORTCULLIS_P&lt;n&gt;_&lt;SLUG&gt;", e.g.
-/// "PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT".
+/// "PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT" — the form SPEC.md now gives as well.
 ///
 /// Track A (M2A/M3A) shipped the first three — <see cref="KernelBoundaryAnalyzer"/> (P2),
 /// <see cref="ProgramManifestLayeringAnalyzer"/> (P9),

@@ -57,7 +57,7 @@ public class CommentFormatterTests
         Assert.Contains("### `src/Demo.AdvertsService/Controllers/AdvertsController.cs`", markdown);
         Assert.Contains("### `src/Demo.IdentityService/Services/EmailSender.cs`", markdown);
         Assert.Contains("### `src/Demo.IdentityService/Program.cs`", markdown);
-        Assert.Contains("PORTCULLIS-P2-KERNEL-LOC-CEILING", markdown);
+        Assert.Contains("PORTCULLIS_P2_KERNEL_LOC_CEILING", markdown);
         Assert.Contains("❌", markdown);
         Assert.Contains("⚠", markdown);
         Assert.Contains("ℹ", markdown);
@@ -89,7 +89,7 @@ public class CommentFormatterTests
         Assert.Contains("1 resolved", markdown);
         Assert.Contains("**New:**", markdown);
         Assert.Contains("**Resolved:**", markdown);
-        Assert.Contains("PORTCULLIS-P11-VENDOR-SDK-LEAK", markdown);
+        Assert.Contains("PORTCULLIS_P11_VENDOR_SDK_OUTSIDE_ADAPTER", markdown);
     }
 
     [Fact]

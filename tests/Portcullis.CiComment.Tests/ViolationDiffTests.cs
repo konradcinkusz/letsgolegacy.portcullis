@@ -5,13 +5,13 @@ namespace Portcullis.CiComment.Tests;
 public class ViolationDiffTests
 {
     private static readonly Violation KernelCeiling = new(
-        "PORTCULLIS-P2-KERNEL-LOC-CEILING", "src/ServiceDefaults/Extensions.cs", 812, "too long", "warning");
+        "PORTCULLIS_P2_KERNEL_LOC_CEILING", "src/ServiceDefaults/Extensions.cs", 812, "too long", "warning");
 
     private static readonly Violation ControllerDbContext = new(
-        "PORTCULLIS-P9-CONTROLLER-NO-DBCONTEXT", "src/Adverts/Controllers/AdvertsController.cs", 47, "leaky", "error");
+        "PORTCULLIS_P9_CONTROLLER_NO_DBCONTEXT", "src/Adverts/Controllers/AdvertsController.cs", 47, "leaky", "error");
 
     private static readonly Violation VendorSdkLeak = new(
-        "PORTCULLIS-P11-VENDOR-SDK-LEAK", "src/Identity/Services/EmailSender.cs", 22, "leaky sdk", "warning");
+        "PORTCULLIS_P11_VENDOR_SDK_OUTSIDE_ADAPTER", "src/Identity/Services/EmailSender.cs", 22, "leaky sdk", "warning");
 
     [Fact]
     public void Compute_WithNoPreviousResult_TreatsEveryCurrentViolationAsNew()

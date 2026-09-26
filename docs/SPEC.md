@@ -78,7 +78,7 @@ and which are new, invented by portcullis because nothing upstream exists to inh
 
 | portcullis rule field | Type | Inherited from architecture-standards? | Source |
 |---|---|---|---|
-| `ruleId` | string | **No — new.** | Convention: `PORTCULLIS-<PrincipleId>-<SLUG>`, e.g. `PORTCULLIS-P2-KERNEL-LOC-CEILING`. Becomes the Roslyn `DiagnosticDescriptor.Id`. |
+| `ruleId` | string | **No — new.** | Convention: `PORTCULLIS_<PrincipleId>_<SLUG>`, e.g. `PORTCULLIS_P2_KERNEL_LOC_CEILING`. Becomes the Roslyn `DiagnosticDescriptor.Id`. Underscores, not the hyphens M0 first wrote here (`PORTCULLIS-P2-...`): Roslyn refuses to report a diagnostic whose id is not a valid identifier, which the first rules hit when they ran — see [`MUTATIONS.md`](MUTATIONS.md) §1. |
 | `principleIds` | string[] | **Yes.** | The same bare-token convention already used in `catalog/marketplace.catalog.json` → `plugins[].skills[].principles[]` (e.g. `["P2"]`). This is the sole join key back to architecture-standards; it is a string, not a link, for the same reason architecture-standards' own catalog uses a string — there is nothing to link to yet. |
 | `sourcePlugin` | string | **Yes.** | `marketplace.json` → `plugins[].name` / `plugin.json` → `name` (e.g. `"architecture-core"`) — which installable package the principle text was read from. |
 | `sourceDoc` | string (repo-relative path) | **Yes.** | `catalog/marketplace.catalog.json` → `skills[].source` (e.g. `docs/architecture/00-REFERENCE-ARCHITECTURE.md`) — the prose document, since the principle itself has no finer-grained anchor. |
@@ -108,7 +108,7 @@ Exactly the five fields fixed at bootstrap, implemented as
 
 | JSON field | Type | Meaning |
 |---|---|---|
-| `ruleId` | string | The portcullis rule id that fired, e.g. `"PORTCULLIS-P2-KERNEL-LOC-CEILING"`. |
+| `ruleId` | string | The portcullis rule id that fired, e.g. `"PORTCULLIS_P2_KERNEL_LOC_CEILING"`. |
 | `filePath` | string | POSIX-style (`/`-separated), relative to the scanned path. |
 | `line` | integer | 1-based line number. |
 | `message` | string | Human-readable description of the specific violation. |
@@ -116,7 +116,7 @@ Exactly the five fields fixed at bootstrap, implemented as
 
 ```json
 {
-  "ruleId": "PORTCULLIS-P2-KERNEL-LOC-CEILING",
+  "ruleId": "PORTCULLIS_P2_KERNEL_LOC_CEILING",
   "filePath": "src/ServiceDefaults/Extensions.cs",
   "line": 812,
   "message": "ServiceDefaults exceeds the 800-line kernel ceiling (currently 812 lines). See architecture-standards P2.",

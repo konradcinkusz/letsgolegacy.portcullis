@@ -71,6 +71,11 @@ that reintroduces a hyphen fails fast in CI rather than crashing every scan with
 consumers of the `ruleId` field should not assume hyphens), which is exactly the kind
 of cross-track call that belongs to the integration session, not this one.
 
+> **Since then (2026-09-26).** `docs/SPEC.md` §1–2 now give the underscore form, and
+> Track B's mock scan results (`fixtures/mock-engine-output/`) carry ids the rules
+> actually register. The SPEC text quoted at the top of this section is what it said
+> when this was written.
+
 ## 2. Mutation-pass methodology
 
 The method, as the engine track's brief put it: each variant "disables or weakens
