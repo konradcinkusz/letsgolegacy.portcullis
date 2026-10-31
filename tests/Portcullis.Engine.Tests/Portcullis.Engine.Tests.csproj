@@ -40,7 +40,7 @@
 
   <ItemGroup>
     <!-- Validates Portcullis's SARIF output against the official schema (Sarif/SarifSchema.cs). -->
-    <PackageReference Include="JsonSchema.Net" Version="9.4.0" />
+    <PackageReference Include="JsonSchema.Net" Version="9.6.0" />
   </ItemGroup>
 
   <ItemGroup>
