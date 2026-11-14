@@ -9,7 +9,7 @@
 #
 # Multi-stage, non-root, no SDK in the final image — architecture-standards P6.
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /source
 
 # Restore against the project files alone first, so the (slow) restore layer is cached
