@@ -30,7 +30,7 @@ RUN dotnet publish src/Portcullis.Cli/Portcullis.Cli.csproj \
  && dotnet publish src/Portcullis.CiComment/Portcullis.CiComment.csproj \
         -c Release -o /app --no-restore -p:Version=$VERSION
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+FROM mcr.microsoft.com/dotnet/runtime:11.0 AS final
 
 # git is a real runtime dependency, not a convenience: --provenance-range shells out to
 # `git diff`/`git blame` to resolve which lines a commit range changed and who authored
